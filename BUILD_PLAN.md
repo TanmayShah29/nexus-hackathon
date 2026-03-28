@@ -576,7 +576,7 @@ GOOGLE_APPLICATION_CREDENTIALS=./nexus-service-account.json
 
 Mark each phase as you complete it:
 
-- [ ] Phase 0  — Agent images cropped
+- [x] Phase 0  — Agent images cropped
 - [x] Phase 1  — schemas.py
 - [x] Phase 2  — agent_tracer.py
 - [x] Phase 3  — main.py (FastAPI shell)
