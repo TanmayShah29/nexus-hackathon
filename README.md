@@ -5,7 +5,7 @@
 
 ---
 
-![NEXUS Banner](agents.jpeg)
+![NEXUS Banner](agent.png)
 
 ## 🚀 What is NEXUS?
 
