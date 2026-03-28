@@ -1,0 +1,14 @@
+{
+  "transcripts": [
+    {
+      "video_id": "python_tutorial",
+      "title": "Python Tutorial for Beginners",
+      "transcript": "Welcome to this Python tutorial. In this video, we'll cover the basics of Python programming. Python is a high-level programming language that's easy to learn and use. Let's start by understanding variables and data types. In Python, you don't need to declare variable types explicitly. The interpreter infers the type based on the value you assign. Python supports various data types including integers, floats, strings, and booleans."
+    },
+    {
+      "video_id": "machine_learning_intro",
+      "title": "Introduction to Machine Learning",
+      "transcript": "Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience. In this video, we'll explore the fundamentals of machine learning. There are three main types of machine learning: supervised learning, unsupervised learning, and reinforcement learning. Supervised learning uses labeled data to train models, while unsupervised learning finds patterns in unlabeled data."
+    }
+  ]
+}

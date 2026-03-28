@@ -1,0 +1,28 @@
+{
+  "directions": [
+    {
+      "origin": "Home",
+      "destination": "Office",
+      "distance": "5.2 km",
+      "duration": "18 min",
+      "route": ["Main St", "Highway 101", "Tech Blvd"],
+      "traffic": "light"
+    }
+  ],
+  "places": [
+    {
+      "name": "Coffee Shop",
+      "address": "123 Main St",
+      "rating": 4.5,
+      "distance": "0.3 km",
+      "type": "cafe"
+    },
+    {
+      "name": "Library",
+      "address": "456 Oak Ave",
+      "rating": 4.8,
+      "distance": "1.2 km",
+      "type": "public_place"
+    }
+  ]
+}

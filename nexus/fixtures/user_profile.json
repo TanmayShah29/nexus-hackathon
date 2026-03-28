@@ -1,0 +1,60 @@
+{
+  "user_id": "user-1",
+  "preferences": {
+    "preferred_timezone": "Asia/Kolkata",
+    "working_hours": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "notification_preferences": {
+      "email": true,
+      "push": true,
+      "sms": false
+    },
+    "theme": "light",
+    "language": "en"
+  },
+  "goals": [
+    {
+      "id": "1",
+      "title": "Prepare for Python interview",
+      "target_date": "2025-03-28",
+      "progress": 65,
+      "milestones": [
+        {"title": "Complete OOP复习", "done": true},
+        {"title": "Practice algorithms", "done": true},
+        {"title": "System design prep", "done": false}
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Learn FastAPI",
+      "target_date": "2025-04-15",
+      "progress": 30,
+      "milestones": [
+        {"title": "Basic routing", "done": true},
+        {"title": "Database integration", "done": false},
+        {"title": "Authentication", "done": false}
+      ]
+    }
+  ],
+  "history": {
+    "sessions": [
+      {
+        "date": "2025-03-26",
+        "topic": "Python decorators",
+        "agents_used": ["atlas", "sage"]
+      },
+      {
+        "date": "2025-03-25",
+        "topic": "System design interview prep",
+        "agents_used": ["atlas", "mnemo"]
+      },
+      {
+        "date": "2025-03-24",
+        "topic": "Daily briefing",
+        "agents_used": ["flux", "chrono", "dash"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "events": [
+    {
+      "id": "1",
+      "title": "Team Standup",
+      "start": "2025-03-27T09:00:00",
+      "end": "2025-03-27T09:30:00",
+      "location": "Zoom",
+      "attendees": ["team@company.com"]
+    },
+    {
+      "id": "2",
+      "title": "Python Interview Prep",
+      "start": "2025-03-27T14:00:00",
+      "end": "2025-03-27T15:00:00",
+      "location": "Home",
+      "attendees": []
+    },
+    {
+      "id": "3",
+      "title": "Code Review",
+      "start": "2025-03-27T11:00:00",
+      "end": "2025-03-27T11:30:00",
+      "location": "Office",
+      "attendees": ["dev@company.com"]
+    },
+    {
+      "id": "4",
+      "title": "Lunch Break",
+      "start": "2025-03-27T12:00:00",
+      "end": "2025-03-27T13:00:00",
+      "location": "",
+      "attendees": []
+    }
+  ]
+}

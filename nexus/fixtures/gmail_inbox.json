@@ -1,0 +1,36 @@
+{
+  "emails": [
+    {
+      "id": "1",
+      "subject": "Welcome to NEXUS",
+      "from": "team@nexus.ai",
+      "date": "2025-03-27",
+      "snippet": "Welcome to NEXUS! Get started with your personal AI productivity assistant.",
+      "read": true
+    },
+    {
+      "id": "2",
+      "subject": "Interview Confirmation",
+      "from": "hr@company.com",
+      "date": "2025-03-26",
+      "snippet": "Your interview is confirmed for tomorrow at 2:00 PM. Please join via the link below.",
+      "read": false
+    },
+    {
+      "id": "3",
+      "subject": "Code Review Request",
+      "from": "dev@company.com",
+      "date": "2025-03-25",
+      "snippet": "Can you review my PR? It includes the new authentication flow.",
+      "read": true
+    },
+    {
+      "id": "4",
+      "subject": "Meeting Notes",
+      "from": "manager@company.com",
+      "date": "2025-03-24",
+      "snippet": "Attached are the notes from yesterday's planning meeting.",
+      "read": true
+    }
+  ]
+}

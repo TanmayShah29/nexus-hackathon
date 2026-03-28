@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Google Sans','Segoe UI',system-ui,sans-serif;
+  background:#f0f4f9;color:#1f1f1f;
+  display:flex;flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+
+:root{
+  --blue:#1a73e8;  --blue-dim:#e8f0fe;
+  --red:#ea4335;   --red-dim:#fce8e6;
+  --green:#34a853; --green-dim:#e6f4ea;
+  --yellow:#f9ab00;--yellow-dim:#fef7e0;
+  --purple:#9334e6;--purple-dim:#f3e8fd;
+  --cyan:#00bcd4;  --cyan-dim:#e0f7fa;
+  --orange:#ff6d00;--orange-dim:#fff3e0;
+  --teal:#0f9d58;  --teal-dim:#e8f5e9;
+  --pink:#c2185b;  --pink-dim:#fce4ec;
+  --border:#dde1e7;
+  --surface:#ffffff;
+  --bg:#f0f4f9;
+  --t1:#1f1f1f;--t2:#444746;--t3:#5f6368;--t4:#9aa0a6;
+  --eq:cubic-bezier(0.4,0,0.2,1);
+  --espring:cubic-bezier(0.34,1.56,0.64,1);
+  --eout:cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ── NAV ───────────────────────────────────────────── */
+.nav{
+  height:52px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  z-index:60;
+}
+.nav-l{display:flex;align-items:center;gap:16px}
+.back{
+  display:flex;align-items:center;gap:4px;
+  font-size:13px;font-weight:600;color:var(--blue);
+  text-decoration:none;transition:opacity 150ms;
+}
+.back:hover{opacity:.7}
+.session-pill{
+  font-size:11px;font-weight:500;
+  padding:3px 10px;border-radius:20px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--t4);font-family:'JetBrains Mono',monospace;
+}
+.demo-pill{
+  font-size:11px;font-weight:700;letter-spacing:.3px;
+  padding:3px 10px;border-radius:20px;
+  background:#fef7e0;color:#b45309;
+  border:1px solid #fcd34d;
+}
+
+/* ── WORKSPACE ─────────────────────────────────────── */
+.workspace{
+  flex:1;display:grid;
+  grid-template-columns:288px 1fr 212px;
+  min-height:0;overflow:hidden;
+  gap:1px;background:var(--border);
+}
+
+/* ── SHARED PANEL ──────────────────────────────────── */
+.panel{background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{
+  padding:12px 16px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.panel-label{
+  font-size:10px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--t4);
+}
+.panel-badge{
+  font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:20px;
+  background:var(--bg);color:var(--t4);
+}
+
+/* ── LEFT PANEL — Activity ─────────────────────────── */
+.left-scroll{flex:1;overflow-y:auto;padding:10px}
+.left-scroll::-webkit-scrollbar{width:3px}
+.left-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Step card */
+.step{
+  border-radius:14px;border:1px solid var(--border);
+  background:var(--surface);
+  margin-bottom:8px;overflow:hidden;cursor:pointer;
+  transition:border-color 200ms var(--eq),box-shadow 200ms var(--eq),transform 200ms var(--eout);
+  animation:stepIn 360ms var(--eout) both;
+}
+.step:hover{
+  border-color:var(--sc,var(--blue));
+  box-shadow:0 4px 16px rgba(0,0,0,.08);
+  transform:translateX(3px);
+}
+@keyframes stepIn{
+  from{opacity:0;transform:translateX(-24px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+.step-top{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 13px 9px;
+}
+.step-icon{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  transition:background 300ms;
+}
+.step-icon.running{
+  border:2px solid var(--sc,var(--blue));
+  background:transparent;
+  animation:spinRing 900ms linear infinite;
+}
+.step-icon.done{background:var(--sc,var(--blue));color:#fff}
+.step-icon.error{background:var(--red);color:#fff}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+
+.step-agent{font-size:12px;font-weight:700;color:var(--sc,var(--blue));flex:1}
+.step-tool-name{font-size:10px;color:var(--t4);white-space:nowrap}
+
+.step-bar{
+  height:2px;background:var(--sc,var(--blue));
+  opacity:.7;
+  animation:indeterminate 1.4s ease-in-out infinite;
+  transform-origin:left;
+}
+.step.done .step-bar,.step.error .step-bar{display:none}
+@keyframes indeterminate{
+  0%{transform:scaleX(0.05) translateX(0%)}
+  50%{transform:scaleX(0.45)}
+  100%{transform:scaleX(0.05) translateX(2000%)}
+}
+
+.step-action{
+  padding:7px 13px 10px;
+  font-size:12px;color:var(--t2);line-height:1.5;
+}
+.step.done .step-action::after{content:' ✓';color:var(--green);font-weight:700}
+.step-hint{
+  font-size:10px;color:var(--t4);
+  padding:0 13px 9px;display:none;
+  display:flex;align-items:center;gap:4px;
+}
+.step-hint svg{width:10px;height:10px}
+
+/* Colored accent bg for done steps */
+.step.done{
+  background:linear-gradient(135deg,var(--surface) 60%,color-mix(in srgb,var(--sc,#1a73e8) 4%,white));
+  border-color:color-mix(in srgb,var(--sc,#1a73e8) 30%,#dde1e7);
+}
+
+/* empty */
+.activity-empty{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:40px 20px;text-align:center;
+  color:var(--t4);gap:8px;height:100%;
+}
+.activity-empty-glyph{font-size:28px;opacity:.4}
+.activity-empty-text{font-size:12px;line-height:1.6}
+
+/* ── CENTER PANEL ──────────────────────────────────── */
+.center-panel{display:flex;flex-direction:column;background:var(--bg)}
+
+/* Live workflow canvas — builds itself as work happens */
+.workflow-canvas{
+  flex:0 0 auto;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  min-height:48px;max-height:280px;
+  overflow:hidden;
+  transition:max-height 600ms var(--eout);
+  position:relative;
+}
+.workflow-canvas.empty{max-height:48px}
+.canvas-label{
+  position:absolute;top:10px;left:16px;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t4);
+  pointer-events:none;
+}
+
+/* The SVG canvas where workflow nodes build in real-time */
+#workflow-svg{
+  width:100%;height:100%;
+  display:block;
+  min-height:48px;
+}
+
+/* Workflow node (Opal-inspired) */
+.wf-node{
+  cursor:pointer;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.08));
+  animation:nodeIn 400ms var(--espring) both;
+}
+@keyframes nodeIn{
+  from{opacity:0;transform:scale(0.6)}
+  to{opacity:1;transform:scale(1)}
+}
+.wf-node.active .wf-rect{
+  animation:nodeGlow 1.2s ease-in-out infinite;
+}
+@keyframes nodeGlow{
+  0%,100%{filter:drop-shadow(0 0 0px transparent)}
+  50%{filter:drop-shadow(0 0 8px currentColor)}
+}
+
+/* Travelling dot on workflow edges */
+.edge-dot{
+  r:4;
+  animation:travelEdge 1.4s ease-in-out infinite;
+}
+@keyframes travelEdge{
+  0%{opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{opacity:0}
+}
+
+/* ── RESPONSE AREA ─────────────────────────────────── */
+.response-area{
+  flex:1;overflow-y:auto;
+  padding:24px 28px;
+}
+.response-area::-webkit-scrollbar{width:4px}
+.response-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.response-inner{max-width:640px;margin:0 auto}
+
+/* Welcome */
+.welcome{
+  text-align:center;padding:40px 0 24px;
+  animation:fadeUp 500ms var(--eout) both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.welcome-glyph{font-size:36px;margin-bottom:14px}
+.welcome h2{font-size:20px;font-weight:600;margin-bottom:8px}
+.welcome p{font-size:14px;color:var(--t3);line-height:1.65;max-width:400px;margin:0 auto 20px}
+.starter-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.starter{
+  font-family:inherit;font-size:12px;font-weight:500;
+  padding:7px 16px;border-radius:20px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--t2);cursor:pointer;
+  transition:all 150ms var(--eq);
+}
+.starter:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+
+/* User message */
+.msg-user{
+  display:flex;justify-content:flex-end;
+  margin-bottom:20px;
+  animation:fadeUp 250ms var(--eout) both;
+}
+.msg-user-bubble{
+  background:var(--blue);color:#fff;
+  padding:10px 16px;border-radius:20px 20px 4px 20px;
+  font-size:14px;line-height:1.5;max-width:78%;
+  box-shadow:0 2px 8px rgba(26,115,232,.25);
+}
+
+/* Agent response — Opal-style card */
+.msg-agent{
+  margin-bottom:20px;
+  animation:fadeUp 300ms var(--eout) both;
+}
+.msg-header{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.msg-avatar{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.msg-agent-name{font-size:13px;font-weight:700}
+.msg-adk-badge{
+  font-size:10px;font-weight:600;letter-spacing:.3px;
+  padding:2px 7px;border-radius:8px;
+  background:var(--bg);color:var(--t4);
+  border:1px solid var(--border);
+}
+
+/* The actual response card — elevated Opal-style */
+.response-card{
+  background:var(--surface);
+  border-radius:4px 18px 18px 18px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+}
+
+/* Colored header band at the top of response card */
+.response-card-header{
+  padding:12px 18px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.response-card-title{
+  font-size:13px;font-weight:700;
+}
+.response-card-meta{
+  font-size:11px;color:var(--t4);
+  display:flex;align-items:center;gap:6px;
+}
+.workflow-badge{
+  font-size:10px;font-weight:600;
+  padding:2px 8px;border-radius:10px;
+  border:1px solid currentColor;
+  opacity:.7;
+}
+
+/* Response body */
+.response-card-body{
+  padding:16px 18px;
+  font-size:14px;line-height:1.75;color:var(--t1);
+}
+.response-card-body h3{
+  font-size:15px;font-weight:600;
+  color:var(--t1);margin:14px 0 6px;
+}
+.response-card-body h3:first-child{margin-top:0}
+.response-card-body strong{font-weight:600}
+.response-card-body ul{margin:6px 0 8px 18px}
+.response-card-body li{font-size:14px;color:var(--t2);margin-bottom:4px;line-height:1.6}
+.response-card-body code{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  background:#f1f3f4;padding:1px 5px;border-radius:4px;color:#c53929;
+}
+.response-card-body em{font-style:normal;color:var(--t3)}
+
+/* Work products section (Paperclip-inspired) */
+.work-products{
+  border-top:1px solid var(--border);
+  padding:12px 18px;
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+.work-product{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;
+  padding:6px 12px;border-radius:10px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--t2);cursor:pointer;
+  transition:all 150ms var(--eq);
+}
+.work-product:hover{border-color:var(--blue);color:var(--blue)}
+.work-product-icon{font-size:13px}
+
+/* Suggestions */
+.suggestions-row{
+  margin-bottom:20px;
+  animation:fadeUp 300ms var(--eout) both;
+}
+.suggestions-label{
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t4);margin-bottom:8px;
+}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  font-family:inherit;font-size:12px;font-weight:500;
+  padding:7px 14px;border-radius:20px;
+  border:1.5px solid var(--border);
+  background:var(--surface);color:var(--blue);
+  cursor:pointer;transition:all 150ms var(--eq);
+}
+.chip:hover{background:var(--blue-dim);border-color:var(--blue);transform:translateY(-1px)}
+
+/* Error */
+.error-card{
+  background:var(--red-dim);border:1px solid var(--red);
+  border-radius:12px;padding:12px 16px;
+  font-size:13px;color:#c5221f;margin-bottom:16px;
+}
+
+/* ── INPUT ─────────────────────────────────────────── */
+.input-zone{
+  padding:10px 20px 14px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.input-container{
+  max-width:640px;margin:0 auto;
+  display:flex;align-items:flex-end;gap:10px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:28px;padding:8px 8px 8px 18px;
+  transition:border-color 200ms,box-shadow 200ms;
+}
+.input-container:focus-within{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(26,115,232,.1);
+  background:#fff;
+}
+#chat-input{
+  flex:1;border:none;background:transparent;outline:none;
+  resize:none;font-family:inherit;font-size:14px;color:var(--t1);
+  min-height:22px;max-height:120px;line-height:1.55;
+}
+#chat-input::placeholder{color:var(--t4)}
+.send-btn{
+  width:38px;height:38px;border-radius:50%;border:none;
+  background:var(--blue);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all 150ms var(--eq);
+  box-shadow:0 2px 8px rgba(26,115,232,.3);
+}
+.send-btn:hover{background:#1557b0;transform:scale(1.08)}
+.send-btn:disabled{background:var(--border);box-shadow:none;cursor:default;transform:none}
+
+/* ── RIGHT PANEL — Agents ──────────────────────────── */
+.agents-scroll{flex:1;overflow-y:auto}
+.agents-scroll::-webkit-scrollbar{width:3px}
+.agents-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+
+.agent-row{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-bottom:1px solid #f0f4f9;
+  transition:background 200ms;cursor:default;position:relative;
+}
+/* left accent bar — the key visual improvement */
+.agent-row::before{
+  content:'';
+  position:absolute;left:0;top:4px;bottom:4px;width:3px;
+  border-radius:0 2px 2px 0;
+  background:var(--rc,transparent);
+  transform:scaleY(0);transition:transform 300ms var(--espring);
+}
+.agent-row.active::before{transform:scaleY(1)}
+.agent-row.active{background:color-mix(in srgb,var(--rc,#1a73e8) 6%,white)}
+
+/* status dot — actually communicates state */
+.row-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--border);transition:background 250ms;
+}
+.agent-row.active .row-dot{
+  background:var(--rc,var(--blue));
+  animation:dotPulse 1.2s ease-in-out infinite;
+}
+.agent-row.done .row-dot{background:var(--green)}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.row-img{
+  width:26px;height:26px;border-radius:50%;
+  object-fit:contain;background:var(--bg);flex-shrink:0;
+  border:1.5px solid var(--border);
+  transition:border-color 250ms;
+}
+.agent-row.active .row-img{border-color:var(--rc,var(--blue))}
+.row-emoji{
+  width:26px;height:26px;font-size:16px;
+  text-align:center;line-height:26px;flex-shrink:0;
+}
+
+.row-info{flex:1;min-width:0}
+.row-name{font-size:12px;font-weight:600;color:var(--t1)}
+.row-status{
+  font-size:10px;color:var(--t4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color 250ms;
+}
+.agent-row.active .row-status{color:var(--rc,var(--blue));font-weight:500}
+.agent-row.done .row-status{color:var(--green)}
+
+/* Thinking dots */
+.think{display:flex;gap:2px;flex-shrink:0}
+.think.hide{display:none}
+.think span{
+  width:3px;height:3px;border-radius:50%;
+  background:var(--rc,var(--blue));
+  animation:bounce 1.2s ease infinite;
+}
+.think span:nth-child(2){animation-delay:.2s}
+.think span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* ── DETAIL DRAWER ─────────────────────────────────── */
+.drawer-veil{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(32,33,36,.45);
+  backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;
+  transition:opacity 250ms var(--eq);
+}
+.drawer-veil.open{opacity:1;pointer-events:all}
+
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;
+  width:420px;z-index:401;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  transform:translateX(100%);
+  transition:transform 350ms var(--eout);
+  box-shadow:-8px 0 40px rgba(0,0,0,.1);
+}
+.drawer-veil.open .drawer{transform:translateX(0)}
+
+.drawer-top{
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.drawer-title-group{}
+.drawer-agent-name{font-size:17px;font-weight:700;margin-bottom:2px}
+.drawer-tool-label{font-size:12px;color:var(--t3)}
+.drawer-close{
+  width:28px;height:28px;border:none;
+  background:var(--bg);border-radius:50%;cursor:pointer;
+  font-size:18px;color:var(--t3);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 150ms;
+}
+.drawer-close:hover{background:var(--border);transform:rotate(90deg);color:var(--t1)}
+
+/* Tool chain mini-diagram (obra/superpowers inspired) */
+.tool-chain{
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tool-chain-label{
+  font-size:10px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--t4);margin-bottom:8px;
+}
+.chain-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chain-node{
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:8px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--t2);white-space:nowrap;
+}
+.chain-node.source{background:var(--drawer-bg,var(--blue-dim));color:var(--drawer-color,var(--blue));border-color:transparent}
+.chain-arrow{color:var(--t4);font-size:12px}
+
+.drawer-body{flex:1;overflow-y:auto;padding:16px 20px}
+.drawer-body::-webkit-scrollbar{width:3px}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--border)}
+
+.d-section{margin-bottom:20px}
+.d-title{
+  font-size:10px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--t4);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;
+}
+.d-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.d-step{
+  background:var(--bg);border-radius:10px;
+  padding:11px 13px;margin-bottom:7px;
+  border-left:3px solid var(--drawer-color,var(--blue));
+}
+.d-step-title{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.d-step-desc{font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:5px}
+.d-step-result{font-size:11px;color:var(--t2)}
+.d-tag{
+  display:inline-block;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:10px;margin-top:5px;
+}
+
+.d-state{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;padding:8px 12px;border-radius:8px;
+  background:#f8f9fa;margin-bottom:5px;border:1px solid var(--border);
+}
+.d-state-key{color:var(--blue);font-weight:600}
+.d-state-val{color:var(--t3);display:block;margin-top:2px;font-family:'Google Sans',sans-serif;font-size:11px}
+.d-state-to{color:var(--green);display:block;margin-top:1px;font-family:'Google Sans',sans-serif;font-size:10px}
+
+.d-memory{
+  padding:10px 12px;border-radius:8px;margin-bottom:6px;
+  background:var(--purple-dim);border-left:3px solid var(--purple);
+}
+.d-memory-layer{font-size:10px;font-weight:700;color:var(--purple);margin-bottom:3px}
+.d-memory-content{font-size:12px;color:var(--t2);line-height:1.5}
+.d-memory-score{font-size:10px;color:var(--purple);margin-top:3px}
+
+.d-conflict{
+  padding:10px 12px;border-radius:8px;margin-bottom:6px;
+  background:var(--red-dim);border-left:3px solid var(--red);
+}
+.d-conflict-issue{font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px}
+.d-conflict-fix{font-size:12px;color:var(--green);font-weight:500}
+
+/* Skills learned (Hermes-inspired) */
+.d-skill{
+  padding:10px 12px;border-radius:8px;margin-bottom:6px;
+  background:var(--blue-dim);border-left:3px solid var(--blue);
+  display:flex;align-items:flex-start;gap:8px;
+}
+.d-skill-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.d-skill-text{font-size:12px;color:var(--t2);line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-l">
+    <a href="index.html" class="back">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+      </svg>
+      Back
+    </a>
+    <span class="session-pill">ID: <span id="session-id">—</span></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="demo-pill">Demo mode</span>
+  </div>
+</nav>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- LEFT: Activity -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-label">Activity</span>
+      <span class="panel-badge" id="step-badge">0 steps</span>
+    </div>
+    <div class="left-scroll" id="activity-log">
+      <div class="activity-empty">
+        <div class="activity-empty-glyph">⚡</div>
+        <div class="activity-empty-text">Agent steps appear here<br>as they happen — click<br>any to inspect it fully.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-panel">
+
+    <!-- Live Workflow Canvas — builds itself as work happens -->
+    <div class="workflow-canvas empty" id="workflow-canvas">
+      <span class="canvas-label">Live workflow</span>
+      <svg id="workflow-svg" viewBox="0 0 800 240"></svg>
+    </div>
+
+    <!-- Response stream -->
+    <div class="response-area" id="response-area">
+      <div class="response-inner" id="response-inner">
+        <div class="welcome" id="welcome">
+          <div class="welcome-glyph">🤖</div>
+          <h2>Hello, I'm NEXUS.</h2>
+          <p>A team of 9 specialist agents built on Google ADK. Ask anything — watch them coordinate in real time, step by step, transparently.</p>
+          <div class="starter-chips">
+            <button class="starter" onclick="use('Prepare for my Python exam tomorrow')">Prepare for my Python exam tomorrow</button>
+            <button class="starter" onclick="use('Plan my day')">Plan my day</button>
+            <button class="starter" onclick="use('Research quantum computing and make notes')">Research quantum computing</button>
+            <button class="starter" onclick="use(`I'm stressed and behind`)">I'm stressed and behind</button>
+          </div>
+        </div>
+      </div>
+      <div class="suggestions-row" id="suggestions" style="display:none;max-width:640px;margin:0 auto 16px">
+        <div class="suggestions-label">What's next</div>
+        <div class="chips-wrap" id="chip-list"></div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-zone">
+      <div class="input-container">
+        <textarea id="chat-input" placeholder="Ask NEXUS anything…" rows="1"></textarea>
+        <button class="send-btn" id="send-btn" onclick="send()">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Agents -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-label">Agents</span>
+    </div>
+    <div class="agents-scroll" id="agent-list"></div>
+  </div>
+
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer-veil" id="drawer-veil" onclick="closeDrawer()">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-top">
+      <div class="drawer-title-group">
+        <div class="drawer-agent-name" id="d-agent-name"></div>
+        <div class="drawer-tool-label" id="d-tool-label"></div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">×</button>
+    </div>
+    <div class="tool-chain" id="d-chain">
+      <div class="tool-chain-label">Tool chain</div>
+      <div class="chain-flow" id="d-chain-flow"></div>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </div>
+</div>
+
+<script>
+/* ── DATA ──────────────────────────────────────────── */
+const API = 'http://localhost:8000';
+
+const AM = { // Agent Meta
+  nexus_core:{c:'#4285F4',bg:'#E8F0FE',n:'NEXUS Core',e:'🤖',adk:'LlmAgent'},
+  atlas:     {c:'#1a73e8',bg:'#E8F0FE',n:'Atlas',     e:'🔬',adk:'LlmAgent'},
+  chrono:    {c:'#ea4335',bg:'#FCE8E6',n:'Chrono',     e:'📅',adk:'LlmAgent'},
+  sage:      {c:'#34a853',bg:'#E6F4EA',n:'Sage',       e:'📝',adk:'LlmAgent'},
+  dash:      {c:'#f9ab00',bg:'#FEF7E0',n:'Dash',       e:'✅',adk:'LlmAgent'},
+  mnemo:     {c:'#9334e6',bg:'#F3E8FD',n:'Mnemo',      e:'🧠',adk:'LlmAgent'},
+  flux:      {c:'#00bcd4',bg:'#E0F7FA',n:'Flux',       e:'💬',adk:'LlmAgent'},
+  quest:     {c:'#ff6d00',bg:'#FFF3E0',n:'Quest',      e:'🎯',adk:'LlmAgent'},
+  lumen:     {c:'#0f9d58',bg:'#E8F5E9',n:'Lumen',      e:'📊',adk:'LlmAgent'},
+  forge:     {c:'#c2185b',bg:'#FCE4EC',n:'Forge',      e:'⚙️',adk:'Sequential+Parallel+Loop'},
+};
+const AGENT_ORDER = ['atlas','chrono','sage','dash','mnemo','flux','quest','lumen','forge'];
+
+/* ── STATE ─────────────────────────────────────────── */
+let sid       = 'session-' + Date.now();
+let busy      = false;
+let cardMap   = {};  // agent:tool → {el, detail}
+let steps     = 0;
+let wfNodes   = [];  // workflow canvas nodes
+let wfEdges   = [];  // workflow canvas edges
+
+/* ── INIT ──────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('session-id').textContent = sid.slice(-8);
+  buildAgentList();
+  initTextarea();
+});
+
+/* ── AGENT LIST ────────────────────────────────────── */
+function buildAgentList(){
+  document.getElementById('agent-list').innerHTML = AGENT_ORDER.map(k => {
+    const m = AM[k];
+    return `
+    <div class="agent-row" id="ar-${k}" style="--rc:${m.c}">
+      <div class="row-dot"></div>
+      <img class="row-img" id="ri-${k}" src="assets/agents/${k}.png" alt="${m.n}"
+        onerror="this.style.display='none';document.getElementById('re-${k}').style.display='block'">
+      <span class="row-emoji" id="re-${k}" style="display:none">${m.e}</span>
+      <div class="row-info">
+        <div class="row-name">${m.n}</div>
+        <div class="row-status" id="rs-${k}">Ready</div>
+      </div>
+      <div class="think hide" id="th-${k}">
+        <span></span><span></span><span></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── TEXTAREA ──────────────────────────────────────── */
+function initTextarea(){
+  const t = document.getElementById('chat-input');
+  t.addEventListener('input', () => {
+    t.style.height = 'auto';
+    t.style.height = Math.min(t.scrollHeight, 120) + 'px';
+  });
+  t.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+}
+function use(text){ document.getElementById('chat-input').value = text; document.getElementById('chat-input').focus(); }
+function useAndSend(text){ use(text); send(); }
+
+/* ── SEND ──────────────────────────────────────────── */
+async function send(){
+  if(busy) return;
+  const inp  = document.getElementById('chat-input');
+  const btn  = document.getElementById('send-btn');
+  const text = inp.value.trim();
+  if(!text) return;
+
+  // Reset
+  cardMap = {}; steps = 0; wfNodes = []; wfEdges = [];
+  updateBadge();
+  resetActivityLog();
+  resetCanvas();
+  resetAgents();
+  document.getElementById('suggestions').style.display = 'none';
+  hideWelcome();
+  appendUserMsg(text);
+
+  inp.disabled = true; btn.disabled = true; busy = true;
+  inp.value = ''; inp.style.height = 'auto';
+
+  try { await stream(text); }
+  catch(e){ appendError('Could not reach NEXUS on port 8000. Is the server running?'); }
+  finally {
+    busy = false;
+    inp.disabled = false; btn.disabled = false;
+    inp.focus();
+  }
+}
+
+/* ── STREAM ────────────────────────────────────────── */
+async function stream(prompt){
+  const res = await fetch(`${API}/chat`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ prompt, user_id:'demo-user', session_id:sid, demo_mode:true }),
+  });
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const reader = res.body.getReader();
+  const dec    = new TextDecoder();
+  let   buf    = '';
+
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    buf += dec.decode(value, {stream:true});
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for(const line of lines){
+      if(line.startsWith('data: ')) onSSE(line.slice(6).trim());
+    }
+  }
+  if(buf.startsWith('data: ')) onSSE(buf.slice(6).trim());
+}
+
+function onSSE(raw){
+  if(!raw) return;
+  let ev; try{ ev = JSON.parse(raw); }catch{ return; }
+  switch(ev.type){
+    case 'trace':    onTrace(ev);    break;
+    case 'response': onResponse(ev); break;
+    case 'error':    appendError(ev.error || 'Agent error'); break;
+  }
+}
+
+/* ── TRACE → step card + canvas + right rail ─────── */
+function onTrace(ev){
+  const {agent,agent_display_name,tool,tool_display_name,action,status,detail,workflow_step,workflow_total_steps} = ev;
+  const m   = AM[agent] || {c:'#4285F4',bg:'#E8F0FE',n:agent_display_name||agent,e:'🤖'};
+  const key = `${agent}:${tool}`;
+
+  if(status === 'running'){
+    if(!cardMap[key]){
+      const el = makeStepCard(key, m, tool_display_name, action, 'running');
+      cardMap[key] = {el, detail:null};
+      steps++; updateBadge();
+    } else {
+      updateCard(cardMap[key].el, action, 'running');
+    }
+    setWorking(agent, m.c, action);
+    // Add node to live canvas
+    addCanvasNode(agent, m, action, workflow_step, workflow_total_steps);
+
+  } else if(status === 'done'){
+    const entry = cardMap[key];
+    if(entry){
+      updateCard(entry.el, action, 'done');
+      if(detail) entry.detail = detail;
+    } else {
+      const el = makeStepCard(key, m, tool_display_name, action, 'done');
+      cardMap[key] = {el, detail};
+      steps++; updateBadge();
+    }
+    setIdle(agent, m.c);
+    // Mark canvas node done
+    doneCanvasNode(agent);
+    if(agent === 'mnemo') flashMnemo();
+
+  } else if(status === 'error'){
+    if(cardMap[key]) updateCard(cardMap[key].el, action, 'error');
+    setIdle(agent, m.c);
+  }
+}
+
+/* ── STEP CARDS ────────────────────────────────────── */
+function makeStepCard(key, m, toolLabel, action, status){
+  const log = document.getElementById('activity-log');
+  // Remove empty state
+  const empty = log.querySelector('.activity-empty');
+  if(empty) empty.remove();
+
+  const el = document.createElement('div');
+  el.className = `step ${status}`;
+  el.style.setProperty('--sc', m.c);
+  el.dataset.key = key;
+
+  el.innerHTML = `
+    <div class="step-top">
+      <div class="step-icon ${status}" style="border-color:${m.c};color:${m.c}">
+        ${status==='done'?'✓':status==='error'?'✕':''}
+      </div>
+      <span class="step-agent">${m.n}</span>
+      <span class="step-tool-name">${toolLabel}</span>
+    </div>
+    ${status==='running'?'<div class="step-bar"></div>':''}
+    <div class="step-action">${esc(action)}</div>
+    <div class="step-hint">
+      <svg viewBox="0 0 10 10" fill="currentColor"><path d="M7 1H9V3M9 1L5 5M1 3V1H3M1 7V9H3M7 9H9V7"/></svg>
+      Click to inspect
+    </div>`;
+
+  el.addEventListener('click', () => {
+    const e = cardMap[key];
+    if(e?.detail) openDrawer(e.detail, m);
+    else if(el.classList.contains('done')) tryFetch(key.split(':')[1], m);
+  });
+
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  return el;
+}
+
+function updateCard(el, action, status){
+  const a = el.querySelector('.step-action'); if(a) a.textContent = action;
+  el.classList.remove('running','done','error');
+  el.classList.add(status);
+  const bar = el.querySelector('.step-bar'); if(bar && status!=='running') bar.remove();
+  const ico = el.querySelector('.step-icon');
+  if(ico){ ico.className = `step-icon ${status}`; ico.textContent = status==='done'?'✓':status==='error'?'✕':''; }
+}
+
+function updateBadge(){
+  document.getElementById('step-badge').textContent = `${steps} step${steps!==1?'s':''}`;
+}
+
+function resetActivityLog(){
+  document.getElementById('activity-log').innerHTML = `
+    <div class="activity-empty">
+      <div class="activity-empty-glyph">⚡</div>
+      <div class="activity-empty-text">Working…</div>
+    </div>`;
+}
+
+/* ── LIVE WORKFLOW CANVAS (the Opal-inspired part) ── */
+// Nodes appear one by one as agents activate. Edges animate between them.
+// This builds the visual graph in real-time — the user watches the plan form.
+
+const CANVAS_W = 800;
+const CANVAS_H = 200;
+let canvasNodeMap = {}; // agent → {x, y, id}
+let canvasEdgeList = [];
+let nodeIndex = 0;
+
+function resetCanvas(){
+  const svg = document.getElementById('workflow-svg');
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `0 0 ${CANVAS_W} ${CANVAS_H}`);
+  canvasNodeMap = {};
+  canvasEdgeList = [];
+  nodeIndex = 0;
+  document.getElementById('workflow-canvas').classList.add('empty');
+  document.getElementById('workflow-canvas').style.maxHeight = '48px';
+}
+
+function addCanvasNode(agent, m, action, step, total){
+  if(canvasNodeMap[agent]) return; // already shown
+
+  const svg = document.getElementById('workflow-canvas');
+  svg.classList.remove('empty');
+  svg.style.maxHeight = '280px';
+  svg.style.transition = 'max-height 500ms cubic-bezier(0.22,1,0.36,1)';
+
+  const svgEl = document.getElementById('workflow-svg');
+
+  // Layout: spread nodes horizontally as they appear
+  const totalExpected = 6; // rough expected nodes
+  const spacing = CANVAS_W / (totalExpected + 1);
+  const x = spacing * (nodeIndex + 1);
+  const y = nodeIndex % 2 === 0 ? 70 : 130; // alternate rows
+  nodeIndex++;
+
+  canvasNodeMap[agent] = {x, y};
+
+  // Draw edge from previous node if exists
+  const prevKeys = Object.keys(canvasNodeMap);
+  if(prevKeys.length > 1){
+    const prev = canvasNodeMap[prevKeys[prevKeys.length - 2]];
+    drawEdge(svgEl, prev.x, prev.y, x, y, m.c, agent);
+  }
+
+  // Draw node
+  drawNode(svgEl, agent, m, x, y, action, true);
+}
+
+function doneCanvasNode(agent){
+  const node = document.getElementById(`cn-${agent}`);
+  if(!node) return;
+  // Change ring to filled
+  const circle = node.querySelector('.wf-active-ring');
+  if(circle){
+    circle.style.animation = 'none';
+    circle.setAttribute('stroke-opacity','0');
+  }
+  const bg = node.querySelector('.wf-bg');
+  if(bg) bg.setAttribute('fill-opacity','1');
+  const check = node.querySelector('.wf-check');
+  if(check) check.style.display = 'block';
+  const spinner = node.querySelector('.wf-spinner');
+  if(spinner) spinner.style.display = 'none';
+}
+
+function drawNode(svg, agent, m, x, y, action, isActive){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('id', `cn-${agent}`);
+  g.setAttribute('class','wf-node');
+  g.setAttribute('transform',`translate(${x},${y})`);
+  g.style.cursor = 'default';
+
+  // Background card
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('class','wf-bg');
+  rect.setAttribute('x','-54');rect.setAttribute('y','-22');
+  rect.setAttribute('width','108');rect.setAttribute('height','44');
+  rect.setAttribute('rx','12');
+  rect.setAttribute('fill', m.bg);
+  rect.setAttribute('stroke', m.c);
+  rect.setAttribute('stroke-width','1.5');
+  rect.setAttribute('fill-opacity','0.85');
+
+  // Active ring
+  const ring = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  ring.setAttribute('class','wf-active-ring');
+  ring.setAttribute('x','-58');ring.setAttribute('y','-26');
+  ring.setAttribute('width','116');ring.setAttribute('height','52');
+  ring.setAttribute('rx','15');
+  ring.setAttribute('fill','none');
+  ring.setAttribute('stroke', m.c);
+  ring.setAttribute('stroke-width','2');
+  ring.setAttribute('stroke-opacity','0.4');
+  if(isActive) ring.style.animation = 'nodeGlow 1.2s ease-in-out infinite';
+
+  // Agent name
+  const nameT = document.createElementNS('http://www.w3.org/2000/svg','text');
+  nameT.setAttribute('x','0');nameT.setAttribute('y','-4');
+  nameT.setAttribute('text-anchor','middle');
+  nameT.setAttribute('fill', m.c);
+  nameT.setAttribute('font-size','11');
+  nameT.setAttribute('font-weight','700');
+  nameT.setAttribute('font-family','Google Sans,sans-serif');
+  nameT.textContent = m.n;
+
+  // Action label (truncated)
+  const actT = document.createElementNS('http://www.w3.org/2000/svg','text');
+  actT.setAttribute('x','0');actT.setAttribute('y','10');
+  actT.setAttribute('text-anchor','middle');
+  actT.setAttribute('fill','#5f6368');
+  actT.setAttribute('font-size','9');
+  actT.setAttribute('font-family','Google Sans,sans-serif');
+  actT.textContent = (action||'').slice(0,18) + ((action||'').length > 18 ? '…' : '');
+
+  // Spinner (active indicator)
+  const spinnerG = document.createElementNS('http://www.w3.org/2000/svg','g');
+  spinnerG.setAttribute('class','wf-spinner');
+  const spinArc = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  spinArc.setAttribute('cx','38');spinArc.setAttribute('cy','-14');
+  spinArc.setAttribute('r','5');spinArc.setAttribute('fill','none');
+  spinArc.setAttribute('stroke', m.c);spinArc.setAttribute('stroke-width','1.5');
+  spinArc.setAttribute('stroke-dasharray','8 16');
+  spinArc.style.animation = 'spinRing 900ms linear infinite';
+  spinnerG.appendChild(spinArc);
+
+  // Check (done indicator)
+  const checkT = document.createElementNS('http://www.w3.org/2000/svg','text');
+  checkT.setAttribute('class','wf-check');
+  checkT.setAttribute('x','38');checkT.setAttribute('y','-10');
+  checkT.setAttribute('text-anchor','middle');
+  checkT.setAttribute('fill','#34a853');
+  checkT.setAttribute('font-size','11');
+  checkT.textContent = '✓';
+  checkT.style.display = 'none';
+
+  g.appendChild(ring); g.appendChild(rect);
+  g.appendChild(nameT); g.appendChild(actT);
+  g.appendChild(spinnerG); g.appendChild(checkT);
+  svg.appendChild(g);
+}
+
+function drawEdge(svg, x1, y1, x2, y2, color, agent){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+
+  // Curved path
+  const mx = (x1 + x2) / 2;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  const d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  path.setAttribute('d', d);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width','1.5');
+  path.setAttribute('stroke-opacity','0.4');
+  path.setAttribute('stroke-dasharray','4 3');
+
+  // Travelling dot
+  const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dot.setAttribute('class','edge-dot');
+  dot.setAttribute('fill', color);
+  dot.setAttribute('r','4');
+  const anim = document.createElementNS('http://www.w3.org/2000/svg','animateMotion');
+  anim.setAttribute('dur','1.6s');
+  anim.setAttribute('repeatCount','indefinite');
+  const mp = document.createElementNS('http://www.w3.org/2000/svg','mpath');
+  // Give path an id to reference
+  const pid = `ep-${agent}-${Date.now()}`;
+  path.setAttribute('id', pid);
+  mp.setAttribute('href', `#${pid}`);
+  anim.appendChild(mp);
+  dot.appendChild(anim);
+
+  g.appendChild(path);
+  g.appendChild(dot);
+  svg.insertBefore(g, svg.firstChild); // edges behind nodes
+}
+
+/* ── RIGHT RAIL STATE ──────────────────────────────── */
+function setWorking(agent, color, action){
+  const row = document.getElementById(`ar-${agent}`);
+  const st  = document.getElementById(`rs-${agent}`);
+  const th  = document.getElementById(`th-${agent}`);
+  if(!row) return;
+  row.classList.add('active');
+  row.style.setProperty('--rc', color);
+  if(st) st.textContent = (action||'').slice(0,22) + ((action||'').length>22?'…':'');
+  if(th){ th.classList.remove('hide'); th.querySelectorAll('span').forEach(s=>s.style.background=color); }
+}
+function setIdle(agent, color){
+  const row = document.getElementById(`ar-${agent}`);
+  const st  = document.getElementById(`rs-${agent}`);
+  const th  = document.getElementById(`th-${agent}`);
+  if(!row) return;
+  row.classList.remove('active'); row.classList.add('done');
+  if(st) st.textContent = 'Done ✓';
+  if(th) th.classList.add('hide');
+  setTimeout(()=>{ row.classList.remove('done'); if(st) st.textContent='Ready'; }, 4500);
+}
+function flashMnemo(){
+  const row = document.getElementById('ar-mnemo');
+  const st  = document.getElementById('rs-mnemo');
+  if(!row) return;
+  row.classList.add('active');
+  row.style.setProperty('--rc','#9334e6');
+  if(st) st.textContent = 'Memory saved ✦';
+  setTimeout(()=>{ row.classList.remove('active'); if(st) st.textContent='Ready'; }, 4000);
+}
+function resetAgents(){
+  AGENT_ORDER.forEach(k => {
+    const row=document.getElementById(`ar-${k}`);
+    const st=document.getElementById(`rs-${k}`);
+    const th=document.getElementById(`th-${k}`);
+    if(row) row.classList.remove('active','done');
+    if(st)  st.textContent='Ready';
+    if(th)  th.classList.add('hide');
+  });
+}
+
+/* ── RESPONSE ──────────────────────────────────────── */
+function onResponse(ev){
+  const r = ev.result;
+  if(!r) return;
+  const m = AM[r.agent] || {c:'#4285F4',bg:'#E8F0FE',n:r.agent_display_name,e:'🤖',adk:'LlmAgent'};
+
+  const inner = document.getElementById('response-inner');
+  const div   = document.createElement('div');
+  div.className = 'msg-agent';
+
+  // Build work products
+  let products = '';
+  if(r.workflow_type && r.workflow_type !== 'simple'){
+    const items = buildWorkProducts(r.workflow_type, m.c);
+    if(items) products = `<div class="work-products">${items}</div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-header">
+      <div class="msg-avatar" style="background:${m.bg}">${m.e}</div>
+      <span class="msg-agent-name" style="color:${m.c}">${m.n}</span>
+      <span class="msg-adk-badge">${m.adk}</span>
+      ${r.from_demo_mode?'<span class="msg-adk-badge" style="color:#b45309;background:#fef7e0;border-color:#fcd34d">Demo</span>':''}
+    </div>
+    <div class="response-card">
+      <div class="response-card-header" style="background:color-mix(in srgb,${m.c} 6%,white)">
+        <span class="response-card-title" style="color:${m.c}">${r.summary}</span>
+        <div class="response-card-meta">
+          ${r.workflow_type&&r.workflow_type!=='simple'?`<span class="workflow-badge" style="color:${m.c}">${r.workflow_type.replace(/_/g,' ')}</span>`:''}
+        </div>
+      </div>
+      <div class="response-card-body">${md(r.full_response)}</div>
+      ${products}
+    </div>`;
+
+  inner.appendChild(div);
+
+  if(r.suggestions?.length) showChips(r.suggestions);
+  if(r.memory_writes?.length) flashMnemo();
+  scrollResp();
+}
+
+function buildWorkProducts(wfType, color){
+  const map = {
+    exam_prep: [
+      {icon:'📄',label:'Python Study Guide',detail:'14 pages · Firestore'},
+      {icon:'📅',label:'3 study blocks created',detail:'Calendar events'},
+      {icon:'✅',label:'7 revision tasks',detail:'High priority · Due tomorrow'},
+    ],
+    day_planner:[
+      {icon:'📅',label:'2 focus blocks',detail:'Chrono · Calendar'},
+      {icon:'🌤️',label:'Weather-adjusted',detail:'24°C, partly cloudy'},
+    ],
+    research_loop:[
+      {icon:'📄',label:'Research notes',detail:'4 sections · Firestore'},
+      {icon:'🔗',label:'6 sources cited',detail:'Tavily + Wikipedia'},
+    ],
+  };
+  const items = map[wfType];
+  if(!items) return '';
+  return items.map(i => `
+    <div class="work-product">
+      <span class="work-product-icon">${i.icon}</span>
+      <span>${i.label}</span>
+      <span style="color:var(--t4);font-size:10px">${i.detail}</span>
+    </div>`).join('');
+}
+
+function appendUserMsg(text){
+  const inner = document.getElementById('response-inner');
+  const div   = document.createElement('div');
+  div.className = 'msg-user';
+  div.innerHTML = `<div class="msg-user-bubble">${esc(text)}</div>`;
+  inner.appendChild(div);
+  scrollResp();
+}
+function appendError(msg){
+  const inner = document.getElementById('response-inner');
+  const div   = document.createElement('div');
+  div.className = 'error-card';
+  div.textContent = '⚠ ' + msg;
+  inner.appendChild(div);
+  scrollResp();
+}
+function scrollResp(){ const a=document.getElementById('response-area'); a.scrollTop=a.scrollHeight; }
+function hideWelcome(){ const w=document.getElementById('welcome'); if(w) w.style.display='none'; }
+
+/* ── CHIPS ─────────────────────────────────────────── */
+function showChips(list){
+  const wrap = document.getElementById('suggestions');
+  document.getElementById('chip-list').innerHTML = list.map(s =>
+    `<button class="chip" onclick="useAndSend('${esc(s.prompt).replace(/'/g,'\\\'')}')">${esc(s.label)}</button>`
+  ).join('');
+  wrap.style.display = 'block';
+}
+
+/* ── DRAWER ────────────────────────────────────────── */
+function openDrawer(detail, m){
+  document.getElementById('d-agent-name').textContent = detail.agent_display_name;
+  document.getElementById('d-agent-name').style.color = m.c;
+  document.getElementById('d-tool-label').textContent =
+    detail.tool_display_name + (detail.duration_ms ? ` · ${detail.duration_ms}ms · ${detail.api_calls_made} API call${detail.api_calls_made!==1?'s':''}` : '');
+
+  // Tool chain
+  document.getElementById('d-chain-flow').innerHTML = buildChain(detail, m);
+  document.getElementById('d-chain').style.setProperty('--drawer-color', m.c);
+  document.getElementById('d-chain').style.setProperty('--drawer-bg', m.bg);
+
+  document.getElementById('d-body').innerHTML = buildDrawerBody(detail, m.c);
+  document.getElementById('drawer-veil').classList.add('open');
+}
+function closeDrawer(){ document.getElementById('drawer-veil').classList.remove('open'); }
+
+function buildChain(detail, m){
+  const nodes = [];
+  if(detail.session_state_writes?.length){
+    nodes.push(`<span class="chain-node source">${detail.tool_display_name}</span>`);
+    nodes.push(`<span class="chain-arrow">→</span>`);
+    detail.session_state_writes.forEach((w,i) => {
+      nodes.push(`<span class="chain-node" style="font-family:'JetBrains Mono',monospace;font-size:10px">${w.key}</span>`);
+      if(w.read_by?.length){
+        nodes.push(`<span class="chain-arrow">→</span>`);
+        nodes.push(`<span class="chain-node">${w.read_by.join(' + ')}</span>`);
+      }
+    });
+  } else {
+    nodes.push(`<span class="chain-node source">${detail.agent_display_name}</span>`);
+    nodes.push(`<span class="chain-arrow">→</span>`);
+    nodes.push(`<span class="chain-node">${detail.tool_display_name}</span>`);
+  }
+  return nodes.join('');
+}
+
+function buildDrawerBody(d, color){
+  let h = '';
+
+  if(d.steps?.length){
+    h += `<div class="d-section"><div class="d-title">Steps taken</div>`;
+    d.steps.forEach(s => {
+      const tc = {success:'#34a853',info:'#1a73e8',warning:'#f9ab00',error:'#ea4335'}[s.tag_type] || color;
+      h += `<div class="d-step" style="border-left-color:${color}">
+        <div class="d-step-title">${esc(s.title)}</div>
+        <div class="d-step-desc">${esc(s.description)}</div>
+        ${s.result_summary?`<div class="d-step-result">${esc(s.result_summary)}</div>`:''}
+        ${s.tag?`<span class="d-tag" style="background:${tc}18;color:${tc}">${esc(s.tag)}</span>`:''}
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  if(d.session_state_writes?.length){
+    h += `<div class="d-section"><div class="d-title">Passed to next agent</div>`;
+    d.session_state_writes.forEach(w => {
+      h += `<div class="d-state">
+        <span class="d-state-key">${esc(w.key)}</span>
+        <span class="d-state-val">${esc(w.value_summary)}</span>
+        ${w.read_by?.length?`<span class="d-state-to">→ consumed by ${w.read_by.join(', ')}</span>`:''}
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  if(d.conflicts_resolved?.length){
+    h += `<div class="d-section"><div class="d-title">Conflicts resolved</div>`;
+    d.conflicts_resolved.forEach(c => {
+      h += `<div class="d-conflict">
+        <div class="d-conflict-issue">⚠ ${esc(c.conflict)}</div>
+        <div class="d-conflict-fix">✓ ${esc(c.resolution)}</div>
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  if(d.memory_writes?.length){
+    h += `<div class="d-section"><div class="d-title">Committed to memory</div>`;
+    d.memory_writes.forEach(m => {
+      h += `<div class="d-memory">
+        <div class="d-memory-layer">${esc(m.layer_display)}</div>
+        <div class="d-memory-content">${esc(m.content)}</div>
+        ${m.importance_score?`<div class="d-memory-score">Importance ${m.importance_score}/5</div>`:''}
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  // Skills learned (Hermes-inspired)
+  if(d.memory_writes?.some(m=>m.layer==='profile')){
+    h += `<div class="d-section"><div class="d-title">Learnt about you</div>`;
+    d.memory_writes.filter(m=>m.layer==='profile').forEach(m => {
+      h += `<div class="d-skill">
+        <span class="d-skill-icon">✦</span>
+        <span class="d-skill-text">${esc(m.content)}</span>
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  if(d.raw_output_summary){
+    h += `<div class="d-section"><div class="d-title">Raw output</div>
+      <div class="d-step" style="border-left-color:${color}">
+        <div class="d-step-desc">${esc(d.raw_output_summary)}</div>
+      </div>
+    </div>`;
+  }
+
+  return h || '<p style="color:var(--t4);font-size:13px;padding:4px 0">No detail available.</p>';
+}
+
+async function tryFetch(tool, m){
+  try{
+    const r = await fetch(`${API}/mcp-detail/${sid}/${tool}`);
+    if(r.ok){ const d = await r.json(); openDrawer(d, m); }
+  }catch{}
+}
+
+/* ── MINIMAL MARKDOWN ──────────────────────────────── */
+function md(text){
+  if(!text) return '';
+  return text
+    .replace(/^## (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^### (.+)$/gm,'<h3 style="font-size:14px">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+    .replace(/\n\n/g,'</p><p style="margin:8px 0">')
+    .replace(/\n/g,'<br>');
+}
+
+function esc(s){
+  const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;
+}
+
+window.send=send; window.use=use; window.useAndSend=useAndSend; window.closeDrawer=closeDrawer;
+</script>
+</body>
+</html>

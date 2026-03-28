@@ -1,0 +1,29 @@
+{
+  "search_results": [
+    {
+      "title": "Python Programming Language",
+      "url": "https://python.org",
+      "snippet": "Python is a high-level, general-purpose programming language that emphasizes code readability with the use of significant indentation."
+    },
+    {
+      "title": "Python Tutorial",
+      "url": "https://w3schools.com/python",
+      "snippet": "Learn Python with our complete Python tutorial covering all the basics including variables, loops, functions, and more."
+    },
+    {
+      "title": "Python for Beginners",
+      "url": "https://realpython.com",
+      "snippet": "Real Python is a repository of free Python tutorials, articles, and screencasts for all skill levels."
+    },
+    {
+      "title": "Python Documentation",
+      "url": "https://docs.python.org/3",
+      "snippet": "The official documentation for the Python programming language, including the library reference and language reference."
+    },
+    {
+      "title": "FastAPI",
+      "url": "https://fastapi.tiangolo.com",
+      "snippet": "FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.7+."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "articles": [
+    {
+      "title": "Python (programming language)",
+      "extract": "Python is a high-level, general-purpose programming language that emphasizes code readability with the use of significant indentation. Its language constructs and object-oriented approach aim to help programmers write clear, logical code for small and large-scale projects.",
+      "url": "https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "title": "Machine learning",
+      "extract": "Machine learning is a field of inquiry devoted to understanding and building methods that 'learn', that is, methods that leverage data to improve performance on some set of tasks. It is seen as a part of artificial intelligence.",
+      "url": "https://en.wikipedia.org/wiki/Machine_learning"
+    },
+    {
+      "title": "FastAPI",
+      "extract": "FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.7+ based on standard Python type hints. It is designed to be easy to use and fast to develop.",
+      "url": "https://en.wikipedia.org/wiki/FastAPI"
+    }
+  ]
+}

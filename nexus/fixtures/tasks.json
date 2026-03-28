@@ -1,0 +1,44 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Review Python OOP concepts",
+      "priority": "high",
+      "status": "pending",
+      "due_date": "2025-03-27",
+      "tags": ["python", "interview"]
+    },
+    {
+      "id": "2",
+      "title": "Practice system design",
+      "priority": "high",
+      "status": "pending",
+      "due_date": "2025-03-28",
+      "tags": ["system-design", "interview"]
+    },
+    {
+      "id": "3",
+      "title": "Prepare interview questions",
+      "priority": "medium",
+      "status": "pending",
+      "due_date": "2025-03-27",
+      "tags": ["interview"]
+    },
+    {
+      "id": "4",
+      "title": "Review algorithms",
+      "priority": "medium",
+      "status": "done",
+      "due_date": "2025-03-26",
+      "tags": ["algorithms", "interview"]
+    },
+    {
+      "id": "5",
+      "title": "Set up development environment",
+      "priority": "low",
+      "status": "done",
+      "due_date": "2025-03-25",
+      "tags": ["setup"]
+    }
+  ]
+}

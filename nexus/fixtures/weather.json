@@ -1,0 +1,27 @@
+{
+  "current": {
+    "location": "Mumbai",
+    "description": "Clear sky",
+    "temperature": 28,
+    "humidity": 65,
+    "wind_speed": 12,
+    "icon": "01d",
+    "feels_like": 30,
+    "pressure": 1013,
+    "visibility": 10
+  },
+  "forecast": [
+    {
+      "day": "2025-03-28",
+      "description": "Partly cloudy",
+      "temp_high": 30,
+      "temp_low": 22
+    },
+    {
+      "day": "2025-03-29",
+      "description": "Sunny",
+      "temp_high": 32,
+      "temp_low": 24
+    }
+  ]
+}
