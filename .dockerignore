@@ -1,0 +1,61 @@
+# .dockerignore — repo root
+# Keep the image small and ensure no secrets are baked in.
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+nexus/venv/
+tmp_venv/
+env/
+
+# Secrets — CRITICAL: never include
+.env
+**/.env
+*.env
+*.key
+*.pem
+serviceAccountKey.json
+firebase-credentials.json
+
+# Git / IDE / OS
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Tests (not needed at runtime)
+tests/
+nexus/tests/
+*.test.py
+pytest.ini
+.pytest_cache/
+.ruff_cache/
+
+# Development docs
+*.md
+Makefile
+DEMO_GUIDE.md
+DEVELOPER.md
+ARCHITECTURE.md
+
+# Old junk
+brain/
+stitch.zip
+stitch_extracted/
+tmp_stitch/
+tmp_venv/
+verify_expansion.py
+
+# Runtime state files
+nexus/reboot.log
+nexus/server.log
+nexus/storage/blackboard.json
+nexus/memory/vector_store.json

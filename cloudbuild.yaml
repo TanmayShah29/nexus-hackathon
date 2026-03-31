@@ -1,0 +1,112 @@
+# =============================================================================
+# cloudbuild.yaml — NEXUS CI/CD pipeline for Google Cloud Build
+#
+# Triggered automatically on push to `main` (configure trigger in Console).
+# Substitution variables (set in Cloud Build trigger UI or --substitutions flag):
+#
+#   _REGION           — Cloud Run region, e.g. asia-southeast1
+#   _SERVICE          — Cloud Run service name, e.g. nexus-api
+#   _AR_REPO          — Artifact Registry repo, e.g. nexus-docker
+#   _VPC_CONNECTOR    — VPC Connector resource name (for AlloyDB access)
+#   _SA_EMAIL         — Service Account email the Cloud Run service runs as
+# =============================================================================
+
+substitutions:
+  _REGION:         "asia-southeast1"
+  _SERVICE:        "nexus-api"
+  _AR_REPO:        "nexus-docker"
+  _VPC_CONNECTOR:  "projects/${PROJECT_ID}/locations/${_REGION}/connectors/nexus-connector"
+  _SA_EMAIL:       "nexus-api@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Store build cache in GCS for faster subsequent builds
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: "E2_HIGHCPU_8"
+
+steps:
+
+# ── 1. Build image ────────────────────────────────────────────────────────────
+- id: "build"
+  name: "gcr.io/cloud-builders/docker"
+  args:
+    - "build"
+    - "--tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}"
+    - "--tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:latest"
+    - "--cache-from=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:latest"
+    - "--build-arg=BUILDKIT_INLINE_CACHE=1"
+    - "-f=Dockerfile"
+    - "."
+
+# ── 2. Push image to Artifact Registry ───────────────────────────────────────
+- id: "push"
+  name: "gcr.io/cloud-builders/docker"
+  waitFor: ["build"]
+  args:
+    - "push"
+    - "--all-tags"
+    - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}"
+
+# ── 3. Deploy to Cloud Run ────────────────────────────────────────────────────
+# Secrets are read from Secret Manager at deploy time — never stored in source.
+# All DB credentials are injected as env vars from Secret Manager secrets.
+- id: "deploy"
+  name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+  waitFor: ["push"]
+  entrypoint: "gcloud"
+  args:
+    - "run"
+    - "deploy"
+    - "${_SERVICE}"
+    - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}"
+    - "--region=${_REGION}"
+    - "--platform=managed"
+    - "--service-account=${_SA_EMAIL}"
+
+    # ── Network: VPC connector so the service can reach AlloyDB private IP ──
+    - "--vpc-connector=${_VPC_CONNECTOR}"
+    - "--vpc-egress=private-ranges-only"   # only private IPs go through VPC
+
+    # ── Concurrency / resources ──────────────────────────────────────────────
+    - "--concurrency=80"
+    - "--cpu=1"
+    - "--memory=512Mi"
+    - "--min-instances=0"
+    - "--max-instances=10"
+    - "--timeout=120"
+
+    # ── Environment variables (non-secret) ──────────────────────────────────
+    - "--set-env-vars=DEMO_MODE=false,PORT=8080,VERTEX_LOCATION=${_REGION}"
+
+    # ── Secrets from Secret Manager (mounted as env vars) ───────────────────
+    # Create each secret first:
+    #   gcloud secrets create nexus-db-host --data-file=<(echo -n "10.x.x.x")
+    #   gcloud secrets create nexus-db-user --data-file=<(echo -n "nexus_user")
+    #   ... etc.
+    - "--set-secrets=\
+DB_HOST=nexus-db-host:latest,\
+DB_NAME=nexus-db-name:latest,\
+DB_USER=nexus-db-user:latest,\
+DB_PASS=nexus-db-pass:latest,\
+NEXUS_API_KEY=nexus-api-key:latest,\
+GOOGLE_API_KEY=nexus-google-api-key:latest,\
+TAVILY_API_KEY=nexus-tavily-key:latest,\
+ALLOWED_ORIGINS=nexus-allowed-origins:latest"
+
+    # ── IAM: allow public access (frontend calls /chat directly) ────────────
+    # Remove this flag and add Cloud Armor / IAP if you need auth.
+    - "--allow-unauthenticated"
+
+# ── 4. Tag Git commit with deployed image digest ─────────────────────────────
+# (Optional — useful for rollback tracking)
+- id: "tag-latest"
+  name: "gcr.io/cloud-builders/docker"
+  waitFor: ["deploy"]
+  args:
+    - "tag"
+    - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}"
+    - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:stable"
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:latest"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:stable"
