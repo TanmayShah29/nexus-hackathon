@@ -11,7 +11,9 @@
 const API_BASE =
     window.NEXUS_CONFIG?.API_BASE ||
     document.currentScript?.dataset?.apiBase ||
-    'http://localhost:8000';
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:8000' 
+        : ''); // Fallback to relative path or empty for production/Firebase config
 
 const NEXUS_API_TOKEN =
     window.NEXUS_CONFIG?.API_TOKEN || 'nexus_secret';
