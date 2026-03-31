@@ -4,6 +4,10 @@ test_routes.py — Tests for API Routes
 
 import pytest
 from fastapi import HTTPException
+from nexus.config import get_nexus_api_key
+
+NEXUS_API_KEY = get_nexus_api_key()
+AUTH_HEADER = f"Bearer {NEXUS_API_KEY}"
 
 
 class TestHealthEndpoint:
@@ -11,7 +15,7 @@ class TestHealthEndpoint:
     async def test_health_response(self):
         from nexus.routes.system import health
 
-        response = await health()
+        response = await health(authorization=AUTH_HEADER)
 
         assert response.status in ["ok", "degraded"]
         assert response.version == "1.0.0"
@@ -23,7 +27,7 @@ class TestAgentsEndpoint:
     async def test_get_agents(self):
         from nexus.routes.system import get_agents
 
-        response = await get_agents()
+        response = await get_agents(authorization=AUTH_HEADER)
 
         assert response.total > 0
         assert len(response.agents) == response.total
@@ -32,7 +36,7 @@ class TestAgentsEndpoint:
     async def test_get_agent_valid(self):
         from nexus.routes.system import get_agent
 
-        response = await get_agent("atlas")
+        response = await get_agent("atlas", authorization=AUTH_HEADER)
 
         assert response.name == "atlas"
         assert response.display_name == "Atlas"
@@ -41,8 +45,9 @@ class TestAgentsEndpoint:
     async def test_get_agent_invalid(self):
         from nexus.routes.system import get_agent
 
-        with pytest.raises(HTTPException):
-            await get_agent("nonexistent_agent")
+        with pytest.raises(HTTPException) as exc:
+            await get_agent("nonexistent_agent", authorization=AUTH_HEADER)
+        assert exc.value.status_code == 404
 
 
 class TestSecurityUtils:
