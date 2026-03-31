@@ -2,15 +2,15 @@
 calendar_mcp.py — Calendar MCP (Google Calendar or fixture)
 """
 
-import os
-from datetime import datetime, timedelta
 from typing import Any
+import copy
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
-CALENDAR_FIXTURE = [
+_CALENDAR_FIXTURE_TEMPLATE = [
     {
         "id": "1",
         "title": "Team Standup",
@@ -38,15 +38,17 @@ CALENDAR_FIXTURE = [
 class CalendarMCP:
     """
     Google Calendar integration with fixture fallback.
+    Uses instance-level storage to avoid data leakage between sessions.
     """
 
     def __init__(self, demo_mode: bool = DEMO_MODE):
         self.demo_mode = demo_mode or DEMO_MODE
+        self._events = copy.deepcopy(_CALENDAR_FIXTURE_TEMPLATE)
 
     async def get_events(self, days: int = 7) -> list[dict[str, Any]]:
         """Get calendar events for the next N days."""
         if self.demo_mode:
-            return CALENDAR_FIXTURE
+            return copy.deepcopy(self._events)
 
         raise NotImplementedError("Real Google Calendar not implemented")
 
@@ -56,14 +58,14 @@ class CalendarMCP:
         """Create a new calendar event."""
         if self.demo_mode:
             event = {
-                "id": str(len(CALENDAR_FIXTURE) + 1),
+                "id": str(len(self._events) + 1),
                 "title": title,
                 "start": start,
                 "end": end,
                 "location": location,
             }
-            CALENDAR_FIXTURE.append(event)
-            return event
+            self._events.append(event)
+            return copy.deepcopy(event)
 
         raise NotImplementedError("Real Google Calendar not implemented")
 

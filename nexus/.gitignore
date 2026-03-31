@@ -1,12 +1,13 @@
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.pyd
 .Python
 venv/
 .venv/
 env/
+# Keep .env.example in git — only ignore the real secrets file
 .env
+!.env.example
 *.egg-info/
 dist/
 build/
@@ -20,3 +21,12 @@ htmlcov/
 .DS_Store
 *.db
 *.sqlite3
+# Blackboard disk state — machine-specific, not to be committed
+storage/blackboard.json
+# Vector store local disk fallback
+memory/vector_store.json
+# Uploaded/extracted archives
+*.zip
+stitch_extracted/
+tmp_stitch/
+tmp_venv/

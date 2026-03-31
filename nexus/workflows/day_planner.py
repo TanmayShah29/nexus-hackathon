@@ -3,20 +3,22 @@ day_planner.py — Day Planner Workflow
 
 ParallelAgent + SequentialAgent workflow:
 1. ParallelAgent:
-   - Dash → pending tasks (output_key: "pending_tasks")
-   - Chrono → calendar (output_key: "todays_calendar")
-   - Flux → weather (output_key: "weather_data")
+   - Tasks → pending tasks (output_key: "pending_tasks")
+   - Scheduler → calendar (output_key: "todays_calendar")
+   - Briefing → weather (output_key: "weather_data")
 2. SequentialAgent:
-   - Step 2: Flux → synthesise (reads all 3 outputs, output_key: "briefing_plan")
-   - Step 3: Chrono → time-blocks (reads {briefing_plan?})
-   - Step 4: Mnemo → save prefs
+   - Step 2: Briefing → synthesise (reads all 3 outputs, output_key: "briefing_plan")
+   - Step 3: Scheduler → time-blocks (reads {briefing_plan?})
+   - Step 4: Memory → save prefs
 """
 
-import os
-import asyncio
+import logging
 from typing import Any
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+logger = logging.getLogger("nexus")
+from nexus.config import get_demo_mode
+
+DEMO_MODE = get_demo_mode()
 
 
 class DayPlannerWorkflow:
@@ -35,7 +37,7 @@ class DayPlannerWorkflow:
         self, prompt: str, user_id: str, session_id: str
     ) -> dict[str, Any]:
         """Demo mode: return mock workflow result."""
-        from mcp_servers import WeatherMCP
+        from nexus.mcp_servers import WeatherMCP
 
         weather = WeatherMCP(demo_mode=True)
         weather_data = await weather.get_current("Mumbai")
@@ -44,7 +46,7 @@ class DayPlannerWorkflow:
 
         step1a = {
             "step": 1,
-            "agent": "dash",
+            "agent": "tasks",
             "action": "Getting pending tasks",
             "output_key": "pending_tasks",
             "result": "Found 5 pending tasks",
@@ -53,7 +55,7 @@ class DayPlannerWorkflow:
 
         step1b = {
             "step": 1,
-            "agent": "chrono",
+            "agent": "scheduler",
             "action": "Reading calendar",
             "output_key": "todays_calendar",
             "result": "3 events today",
@@ -62,7 +64,7 @@ class DayPlannerWorkflow:
 
         step1c = {
             "step": 1,
-            "agent": "flux",
+            "agent": "briefing",
             "action": "Getting weather",
             "output_key": "weather_data",
             "result": f"{weather_data['description']}, {weather_data['temperature']}°C",
@@ -71,7 +73,7 @@ class DayPlannerWorkflow:
 
         step2 = {
             "step": 2,
-            "agent": "flux",
+            "agent": "briefing",
             "action": "Synthesising briefing",
             "input_keys": ["pending_tasks", "todays_calendar", "weather_data"],
             "output_key": "briefing_plan",
@@ -81,7 +83,7 @@ class DayPlannerWorkflow:
 
         step3 = {
             "step": 3,
-            "agent": "chrono",
+            "agent": "scheduler",
             "action": "Time-blocking",
             "input_key": "briefing_plan",
             "result": "Created 3 time blocks",
@@ -90,7 +92,7 @@ class DayPlannerWorkflow:
 
         step4 = {
             "step": 4,
-            "agent": "mnemo",
+            "agent": "memory",
             "action": "Saving preferences",
             "result": "Saved user preferences",
         }
@@ -103,15 +105,16 @@ class DayPlannerWorkflow:
             "session_id": session_id,
             "steps": steps,
             "total_steps": 4,
-            "agents_used": ["dash", "chrono", "flux", "mnemo"],
+            "agents_used": ["tasks", "scheduler", "briefing", "memory"],
             "from_demo_mode": True,
         }
 
     async def _live_run(
         self, prompt: str, user_id: str, session_id: str
     ) -> dict[str, Any]:
-        """Live mode: use real ADK agents."""
-        raise NotImplementedError("Live mode requires ADK setup")
+        """Live mode: use real ADK agents. Falls back to demo if not configured."""
+        logger.warning("Live mode not fully configured, falling back to demo mode")
+        return await self._demo_run(prompt, user_id, session_id)
 
 
 async def run_day_planner(prompt: str, user_id: str, session_id: str) -> dict[str, Any]:

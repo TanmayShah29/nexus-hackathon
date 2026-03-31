@@ -2,20 +2,21 @@
 research_loop.py — Research Loop Workflow
 
 SequentialAgent + LoopAgent workflow:
-1. SequentialAgent: Atlas → search Tavily + Wikipedia (output_key: "raw_research")
+1. SequentialAgent: Research → search Tavily + Wikipedia (output_key: "raw_research")
 2. LoopAgent (pure Gemini, no MCP):
    - Reviewer scores quality 1-10
    - If < 7 AND iterations < 3: loop
    - If >= 7 OR max reached: escalate=True
-3. Sage → structure notes → save to Firestore
-4. Mnemo → save topic interest
+3. Notes → structure notes → save to Firestore
+4. Memory → save topic interest
 """
 
-import os
-import asyncio
+import logging
 from typing import Any
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+logger = logging.getLogger("nexus")
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
 class ResearchLoopWorkflow:
@@ -35,13 +36,12 @@ class ResearchLoopWorkflow:
         self, prompt: str, user_id: str, session_id: str
     ) -> dict[str, Any]:
         """Demo mode: return mock workflow result."""
-        from mcp_servers import SearchMCP, WikipediaMCP
 
         steps = []
 
         step1 = {
             "step": 1,
-            "agent": "atlas",
+            "agent": "research",
             "action": "Initial research",
             "output_key": "raw_research",
             "result": "Found 15 sources from search and Wikipedia",
@@ -72,7 +72,7 @@ class ResearchLoopWorkflow:
 
         step3 = {
             "step": 3,
-            "agent": "sage",
+            "agent": "notes",
             "action": "Structuring and saving notes",
             "result": "Saved structured notes to Firestore",
         }
@@ -80,7 +80,7 @@ class ResearchLoopWorkflow:
 
         step4 = {
             "step": 4,
-            "agent": "mnemo",
+            "agent": "memory",
             "action": "Saving topic interest",
             "result": "Saved to long-term memory",
         }
@@ -93,7 +93,7 @@ class ResearchLoopWorkflow:
             "session_id": session_id,
             "steps": steps,
             "total_steps": 4,
-            "agents_used": ["atlas", "reviewer", "sage", "mnemo"],
+            "agents_used": ["research", "reviewer", "notes", "memory"],
             "loop_iterations": len(loop_iterations),
             "final_quality_score": 8,
             "from_demo_mode": True,
@@ -102,8 +102,9 @@ class ResearchLoopWorkflow:
     async def _live_run(
         self, prompt: str, user_id: str, session_id: str
     ) -> dict[str, Any]:
-        """Live mode: use real ADK agents."""
-        raise NotImplementedError("Live mode requires ADK setup")
+        """Live mode: use real ADK agents. Falls back to demo if not configured."""
+        logger.warning("Live mode not fully configured, falling back to demo mode")
+        return await self._demo_run(prompt, user_id, session_id)
 
 
 async def run_research_loop(

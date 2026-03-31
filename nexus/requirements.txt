@@ -130,3 +130,13 @@ websockets==15.0.1
 yarl==1.23.0
 youtube-transcript-api==1.2.4
 zipp==3.23.0
+supabase==2.11.0
+
+# ─────────────────────────────────────────────────────────
+# DEV-ONLY — do NOT install in production Docker image.
+# Use a separate requirements-dev.txt or pip install -r requirements-dev.txt
+# ─────────────────────────────────────────────────────────
+# ruff>=0.3.0
+# mypy>=1.9.0
+# pytest>=8.1.0
+# pytest-asyncio>=0.23.0

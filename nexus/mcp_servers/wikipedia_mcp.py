@@ -2,13 +2,12 @@
 wikipedia_mcp.py — Wikipedia MCP (free REST API, no key needed)
 """
 
-import os
-import asyncio
-from typing import Any, Optional
+from typing import Any
 import aiohttp
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
 WIKIPEDIA_FIXTURE = {

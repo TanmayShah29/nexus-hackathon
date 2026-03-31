@@ -1,114 +1,167 @@
-# NEXUS — Intelligent Multi-Agent Productivity OS
+# NEXUS OS — Multi-Agent Productivity Assistant
 
-> **Your entire cognitive workload. Managed by a coordinated team of 9 AI agents.**
-> Built with Google ADK · Gemini 1.5 Flash · MCP · Firestore · Cloud Run
-
----
-
-![NEXUS Banner](agent.png)
-
-## 🚀 What is NEXUS?
-
-NEXUS is a production-grade multi-agent AI system that acts as a personal productivity operating system. Unlike generic AI assistants, NEXUS deploys a coordinated team of **9 specialist agents** that collaborate invisibly to manage your tasks, schedules, notes, research, goals, and memory — simultaneously and proactively.
-
-The core thesis: **Every person deserves a team of expert AI agents, not just one chatbot.**
+> **Google Cloud Gen AI Academy APAC 2025 Hackathon**
+> Problem: Multi-Agent AI system for task, schedule, and information management
 
 ---
 
-## 🤖 Meet the Team
+## What is NEXUS?
 
-Every agent in NEXUS has a distinct personality, unique color, owned MCP tools, and a structured output schema.
+NEXUS is a **Multi-Agent Productivity OS** that coordinates specialist AI agents — each owning a domain — to manage your tasks, calendar, research, and memory in a unified flow.
 
-| Agent | Role | Color | Personality | Key Tools |
-| :--- | :--- | :--- | :--- | :--- |
-| **NEXUS Core** | Orchestrator | Blue | Silent Coordinator | All Tools |
-| **Atlas** | Research | Blue | Curious Scholar | Tavily, Brave, Wikipedia |
-| **Chrono** | Scheduler | Red | Timekeeper | Google Calendar, Maps |
-| **Sage** | Notes | Green | Librarian | Notion, Filesystem |
-| **Dash** | Tasks | Yellow | Executor | Firestore, Linear |
-| **Mnemo** | Memory | Purple | Silent Watcher | Firestore (4 layers) |
-| **Flux** | Briefing | Cyan | Empathetic Peer | ElevenLabs, Weather |
-| **Quest** | Goals | Orange | Strategist | Firestore, Notion |
-| **Lumen** | Analytics | Dark Green | Blunt Analyst | Python Executor |
+A single natural-language prompt triggers a swarm of specialists that run in **parallel phases**, each writing to a shared Blackboard, persisting to Supabase, and streaming live traces back to the UI via SSE.
 
 ---
 
-## 🛠️ Technical Stack
+## Architecture
 
-NEXUS is built on 5 distinct architectural layers using the latest Google Cloud and AI technology:
+```
+User Prompt
+     │
+     ▼
+┌─────────────────────────────────────────────────────────┐
+│  SwarmEngine (Orchestrator)                              │
+│  • Gemini 2.0 Flash → dynamic phase plan               │
+│  • asyncio.gather → parallel specialist execution       │
+└──────────┬──────────────────────────────────────────────┘
+           │ Shared Blackboard (dot-notation K/V)
+    ┌──────┼──────────────────────┐
+    │      │                      │
+ Phase 1 (parallel)           Phase 2 (parallel)
+ Atlas  Mnemo              Sage   Chrono
+    │      │                      │
+    └──────┼──────────────────────┘
+           │
+    ┌──────▼──────────────────────┐
+    │  4-Layer Memory Hierarchy   │
+    │  L1: Blackboard (reactive)  │
+    │  L2: JSON disk (session)    │
+    │  L3: Supabase context_items │
+    │  L4: pgvector semantic vault│
+    └─────────────────────────────┘
+           │
+    SSE stream → Frontend D3 graph → Live trace UI
+```
 
-*   **Orchestrator**: [Google ADK](https://github.com/google/adk) LlmAgent with Gemini 1.5 Flash.
-*   **Workflow Engine**: ADK-native `SequentialAgent`, `ParallelAgent`, and `LoopAgent`.
-*   **Tool Layer**: 14 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers.
-*   **Memory System**: 4-layer persistent memory (session.state → Firestore → Vector Search).
-*   **Observability**: Custom `AgentTracer` emitting structured SSE events to the UI.
+### Agents
+
+| Agent | Role | MCP Tools (Real APIs) |
+|-------|------|----------------------|
+| **Orchestrator** | Phase planning, swarm consensus | Gemini 2.0 Flash (Google AI) |
+| **Atlas** | Web intelligence & research | Tavily Search, Wikipedia, Web Scraper |
+| **Chrono** | Calendar & scheduling | Google Calendar API |
+| **Sage** | Knowledge architecture | Notion API, Google Drive |
+| **Mnemo** | 4-layer semantic recall | Supabase (pgvector) |
+| **Tasks** | Task management | Firestore (in-memory) |
+| **Goals** | 90-day roadmapping | — |
+| **Briefing** | Daily context synthesis | OpenWeatherMap, wttr.in (free fallback) |
+| **Analytics** | Productivity metrics | Python Executor |
+| **Toolbox** | Utility & External APIs | **Finance**: CoinGecko (crypto), ExchangeRate-API (currency), Alpha Vantage (stocks) <br> **News**: HackerNews Algolia <br> **Info**: REST Countries, Free Dictionary API <br> **Maps**: OpenStreetMap, OpenRouteService |
+
+### Real API Sources (from public-apis)
+
+All live data is sourced from **free, public APIs** (no auth required for most):
+
+- **Crypto**: [CoinGecko](https://www.coingecko.com/en/api) — Live prices for 10,000+ coins
+- **Currency**: [ExchangeRate-API](https://www.exchangerate-api.com/) — 160+ currencies
+- **Weather**: [OpenWeatherMap](https://openweathermap.org/api) + [wttr.in](https://wttr.in/) (free fallback)
+- **News**: [HackerNews API](https://hn.algolia.com/) via Algolia
+- **Countries**: [REST Countries](https://restcountries.com/) — 250+ countries
+- **Dictionary**: [Free Dictionary API](https://dictionaryapi.dev/)
+- **Wikipedia**: MediaWiki API
+- **Search**: Tavily, Brave Search (optional)
 
 ---
 
-## 🚦 Quick Start
+## Quick Start
 
-### 1. Prerequisites
-- Python 3.11+
-- Node.js (for optional frontend tooling)
-- A Google Gemini API Key ([aistudio.google.com](https://aistudio.google.com/))
-
-### 2. Backend Setup
 ```bash
-cd nexus
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # Add your GOOGLE_API_KEY
-uvicorn main:app --reload --port 8000
+# 1. Clone and set up
+git clone <repo-url>
+cd nexus-hackathon
+./setup.sh
+
+# 2. Configure (optional — defaults to demo mode)
+vim nexus/.env   # add GOOGLE_API_KEY, SUPABASE_*, TAVILY_API_KEY
+
+# 3. Run
+./run.sh
+
+# 4. Open
+open http://localhost:8000          # Landing page (scroll story)
+open http://localhost:8000/studio   # Mission Control (send prompts)
+open http://localhost:8000/memory   # Memory vault
+open http://localhost:8000/docs     # API docs
 ```
 
-### 3. Frontend Setup
-```bash
-cd frontend
-python3 -m http.server 3000
-```
-Visit `http://localhost:3000` to meet the team.
+### Demo mode (no keys required)
+Set `DEMO_MODE=true` in `nexus/.env` (the default). All agents return structured fixture responses. The swarm graph, SSE streaming, Blackboard state, and all four memory layers work without any external API keys.
+
+### Live mode
+Set `DEMO_MODE=false` and provide:
+- `GOOGLE_API_KEY` — Gemini 2.0 Flash (planning + embeddings)
+- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — memory persistence
+- `TAVILY_API_KEY` — Atlas web search (optional; falls back to DuckDuckGo)
 
 ---
 
-## 🧪 Workflows to Try
+## Core Requirements ✓
 
-NEXUS excels at complex, multi-step tasks. Try these prompts in the UI:
-
-1.  **"Prepare for my exam tomorrow"**
-    *   *Atlas* researches the syllabus → *Sage* structures a study guide → *Chrono* blocks study time → *Dash* creates a checklist.
-2.  **"Plan my day"**
-    *   *Dash* fetches tasks + *Chrono* checks calendar + *Flux* checks weather → *Flux* generates a briefing.
-3.  **"I want to learn Python in 90 days"**
-    *   *Quest* decomposes the goal → *Atlas* creates a roadmap → *Sage* saves it to Notion.
+| Requirement | Implementation |
+|-------------|----------------|
+| Primary agent coordinating sub-agents | `SwarmEngine` decomposes prompts into parallel phases via Gemini |
+| Store/retrieve structured data from a database | Supabase: `threads`, `agent_traces`, `context_items`, `memories` (pgvector) |
+| Multiple MCP tools | Tavily, Wikipedia, Google Calendar, Notion, Gmail, OpenWeatherMap, Python Executor |
+| Multi-step workflows | Phase-based `asyncio.gather` execution; each phase result written to shared Blackboard |
+| API-based deployment | FastAPI + SSE; Docker + Cloud Run `cloudbuild.yaml` included |
 
 ---
 
-## 🏛️ Architecture
+## Project Structure
 
-```mermaid
-graph TD
-    User((User)) --> API[FastAPI Gateway]
-    API --> Orch[NEXUS Orchestrator]
-    Orch --> Tracer[AgentTracer SSE]
-    Tracer --> UI[Frontend MCP Cards]
-    
-    subgraph Specialists
-        Orch --> Atlas[Atlas - Research]
-        Orch --> Chrono[Chrono - Schedule]
-        Orch --> Sage[Sage - Notes]
-        Orch --> Mnemo[Mnemo - Memory]
-    end
-    
-    subgraph ToolLayer
-        Atlas --> MCP_S[Search / Wikipedia]
-        Chrono --> MCP_C[Calendar / Maps]
-        Sage --> MCP_N[Notion / Filesystem]
-        Mnemo --> DB[(Firestore)]
-    end
+```
+nexus-hackathon/
+├── nexus/                  # Python package (FastAPI backend)
+│   ├── agents/             # All specialist agents + orchestrator
+│   ├── memory/             # Supabase client + vector store
+│   ├── mcp_servers/        # MCP tool wrappers
+│   ├── models/schemas.py   # Pydantic models + agent registry
+│   ├── observability/      # SSE trace system
+│   ├── routes/             # FastAPI routers (chat, memory, system)
+│   ├── config.py           # Centralised env config
+│   └── main.py             # FastAPI app + lifespan
+├── frontend/               # Vanilla JS + D3 + Tailwind
+│   ├── index.html          # Scroll-story landing page
+│   ├── studio.html         # Mission Control (live D3 swarm graph)
+│   ├── memory.html         # Memory vault + Supabase traces
+│   └── nexus-core.js       # Shared SSE client + Supabase init
+├── run.sh                  # Start server (repo root)
+└── setup.sh                # First-time setup
 ```
 
 ---
 
-Built for **Google Cloud Gen AI Academy — APAC Edition (Hack2Skill 2025)**.
-*Google ADK · Gemini 1.5 Flash · MCP · Firestore · Cloud Run*
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/chat` | SSE swarm execution stream |
+| `POST` | `/plan` | Generate phase plan without executing |
+| `GET` | `/health` | System health + agent count |
+| `GET` | `/agents` | All registered agent identities |
+| `GET` | `/agents/{name}` | Single agent info |
+| `GET` | `/memory/{user_id}` | All 4 memory layers |
+| `GET` | `/memory-graph/{user_id}` | D3-compatible knowledge graph |
+| `GET` | `/memory-search?query=` | Semantic vector search |
+| `GET` | `/trace/{session_id}` | Full trace for a session |
+| `GET` | `/docs` | Interactive Swagger UI |
+
+---
+
+## Technology Stack
+
+- **Backend**: Python 3.11, FastAPI, Pydantic v2, aiohttp, asyncio
+- **LLM**: Gemini 2.0 Flash (planning, response generation, embeddings)
+- **Database**: Supabase (PostgreSQL + pgvector for semantic search)
+- **Frontend**: Vanilla JS, D3.js v7, Tailwind CSS, Server-Sent Events
+- **Deployment**: Docker, Google Cloud Run, Cloud Build

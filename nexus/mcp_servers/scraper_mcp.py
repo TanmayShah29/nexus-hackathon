@@ -2,14 +2,13 @@
 scraper_mcp.py — Web Scraper MCP (BeautifulSoup)
 """
 
-import os
-import asyncio
-from typing import Any, Optional
+from typing import Any
 import aiohttp
 from bs4 import BeautifulSoup
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
 SCRAPER_FIXTURE = {

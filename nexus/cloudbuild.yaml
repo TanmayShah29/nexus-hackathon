@@ -1,13 +1,18 @@
 steps:
-  # Build the container image
+  # Build the container image from repo root so the full package structure is available
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/nexus-api', '.']
+    dir: '.'
+    args:
+      - 'build'
+      - '-f'
+      - 'nexus/Dockerfile'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nexus-api'
+      - '.'
 
-  # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/nexus-api']
 
-  # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -22,7 +27,12 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'DEMO_MODE=true'
+      # FIX: DEMO_MODE=false for live hackathon demo; set ALLOWED_ORIGINS to the
+      # Cloud Run service URL once you have it (update before submitting).
+      - >-
+        DEMO_MODE=false,
+        PORT=8080,
+        ALLOWED_ORIGINS=https://nexus-api-HASH-as.a.run.app
 
 images:
   - 'gcr.io/$PROJECT_ID/nexus-api'

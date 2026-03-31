@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS OS | Tool Gallery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={darkMode:"class",theme:{extend:{
+  colors:{"surface":"#131313","on-surface":"#e5e2e1","on-surface-variant":"#c6c6c6","secondary":"#ddb7ff","tertiary":"#71f8e4","background":"#0B0B0B","surface-container":"#201f1f","outline-variant":"#474747"},
+  fontFamily:{"headline":["Plus Jakarta Sans"],"body":["Plus Jakarta Sans"],"mono":["JetBrains Mono"]},
+  borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"9999px"}
+}}}
+</script>
+<style>
+*{box-sizing:border-box}
+body{background:#0B0B0B;background-image:radial-gradient(#FFFFFF0D 1px,transparent 1px);background-size:40px 40px;color:#e5e2e1;font-family:"Plus Jakarta Sans",sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+.glass{background:rgba(26,26,26,.5);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.08)}
+
+/* ── App shell ── */
+#app{display:flex;flex:1;overflow:hidden}
+#sidenav{width:80px;border-right:1px solid rgba(255,255,255,.07);background:rgba(26,26,26,.5);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:8px;flex-shrink:0}
+#main-content{flex:1;overflow-y:auto;padding:40px 48px}
+#main-content::-webkit-scrollbar{width:4px}
+#main-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+@media(max-width:768px){#sidenav{display:none}#main-content{padding:20px 16px}}
+
+.nav-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);cursor:pointer;border-radius:4px;transition:all .15s;margin:4px 0}
+.nav-icon:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-icon.active{color:#fff;background:rgba(255,255,255,.1)}
+
+/* ── Tool grid ── */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:40px}
+.tool-card{padding:28px;display:flex;flex-direction:column;gap:16px;transition:border-color .2s}
+.tool-card:hover{border-color:rgba(255,255,255,.2)}
+.tool-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.tool-header{display:flex;align-items:center;gap:14px}
+.tool-name{font-size:15px;font-weight:700;letter-spacing:-.01em;color:#fff}
+.tool-badge{font-size:9px;font-family:"JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:2px;margin-top:3px;display:inline-block}
+.tool-desc{font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;flex:1}
+
+/* ── Section header ── */
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;margin-top:8px}
+.section-title{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,.35);font-weight:700}
+</style>
+<script src="nexus-core.js"></script>
+</head>
+<body>
+
+<!-- Top bar -->
+<header style="height:64px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(11,11,11,.6);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;z-index:50">
+  <div style="font-size:18px;font-weight:800;letter-spacing:-.04em;text-transform:uppercase;color:#fff">NEXUS OS</div>
+  <div style="display:flex;gap:32px;align-items:center" class="hidden md:flex">
+    <a href="/" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Home</a>
+    <a href="/studio" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Studio</a>
+    <a href="/memory" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Memory</a>
+    <a href="/mcp" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:#fff;text-decoration:none">Tools</a>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);background:transparent;border:none;cursor:pointer;border-radius:4px" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'"><span class="material-symbols-outlined" style="font-size:20px">settings</span></button>
+    <button style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);background:transparent;border:none;cursor:pointer;border-radius:4px" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'"><span class="material-symbols-outlined" style="font-size:20px">account_circle</span></button>
+  </div>
+</header>
+
+<div id="app">
+  <nav id="sidenav">
+    <div class="nav-icon" onclick="location.href='/'"><span class="material-symbols-outlined">home</span></div>
+    <div class="nav-icon" onclick="location.href='/studio'"><span class="material-symbols-outlined">terminal</span></div>
+    <div class="nav-icon" onclick="location.href='/memory'"><span class="material-symbols-outlined">database</span></div>
+    <div class="nav-icon active"><span class="material-symbols-outlined">inventory_2</span></div>
+  </nav>
+
+  <div id="main-content">
+
+    <!-- Page header -->
+    <div style="margin-bottom:40px;display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#71f8e4;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#71f8e4;box-shadow:0 0 8px #71f8e4"></div>
+          Registry Active
+        </div>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:800;letter-spacing:-.04em;text-transform:uppercase;color:#fff;line-height:1">Cognitive<br/>Tool <span style="color:rgba(255,255,255,.2)">Gallery</span></h1>
+        <p style="font-size:13px;color:rgba(255,255,255,.45);margin-top:12px;max-width:480px;line-height:1.7;font-weight:300">Browse the external interfaces available to your swarm. Each MCP tool connects a specialist agent to a real data source.</p>
+      </div>
+      <div style="text-align:right;flex-shrink:0;display:none" class="md:block">
+        <div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;margin-bottom:4px">Active MCPs</div>
+        <div style="font-size:48px;font-weight:800;letter-spacing:-.04em;color:#fff">10</div>
+      </div>
+    </div>
+
+    <!-- Intelligence & Research -->
+    <div class="section-head">
+      <span class="material-symbols-outlined" style="font-size:16px;color:rgba(255,255,255,.4)">search</span>
+      <span class="section-title">Intelligence & Research</span>
+    </div>
+    <div class="tool-grid">
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(66,133,244,.12);border:1px solid rgba(66,133,244,.2)"><span class="material-symbols-outlined" style="color:#4285F4;font-size:18px">search</span></div>
+          <div><div class="tool-name">Tavily Search</div><span class="tool-badge">API Key · Atlas</span></div>
+        </div>
+        <p class="tool-desc">AI-optimised web search engine. Returns structured results with citations tuned for LLM consumption. Primary search tool for Atlas.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(234,67,53,.12);border:1px solid rgba(234,67,53,.2)"><span class="material-symbols-outlined" style="color:#EA4335;font-size:18px">auto_stories</span></div>
+          <div><div class="tool-name">Wikipedia MediaWiki</div><span class="tool-badge">Free · No Auth · Atlas</span></div>
+        </div>
+        <p class="tool-desc">Encyclopedia REST API. Searches summaries, extracts article content, and finds related pages. Zero auth required — always available.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(26,115,232,.12);border:1px solid rgba(26,115,232,.2)"><span class="material-symbols-outlined" style="color:#1a73e8;font-size:18px">web_stories</span></div>
+          <div><div class="tool-name">Web Scraper</div><span class="tool-badge">Free · BeautifulSoup · Atlas</span></div>
+        </div>
+        <p class="tool-desc">Direct HTML scraping via BeautifulSoup. Extracts text content from any URL as a fallback when Tavily is unavailable.</p>
+      </div>
+    </div>
+
+    <!-- Calendar & Tasks -->
+    <div class="section-head">
+      <span class="material-symbols-outlined" style="font-size:16px;color:rgba(255,255,255,.4)">schedule</span>
+      <span class="section-title">Calendar & Task Management</span>
+    </div>
+    <div class="tool-grid">
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(234,67,53,.12);border:1px solid rgba(234,67,53,.2)"><span class="material-symbols-outlined" style="color:#EA4335;font-size:18px">calendar_today</span></div>
+          <div><div class="tool-name">Google Calendar</div><span class="tool-badge">Fixture · Chrono</span></div>
+        </div>
+        <p class="tool-desc">Event creation, free-slot detection, and conflict resolution. Live implementation requires Google OAuth; demo uses realistic fixture data.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(171,71,188,.12);border:1px solid rgba(171,71,188,.2)"><span class="material-symbols-outlined" style="color:#AB47BC;font-size:18px">checklist</span></div>
+          <div><div class="tool-name">Task Store (Firestore)</div><span class="tool-badge">In-Memory · Tasks</span></div>
+        </div>
+        <p class="tool-desc">CRUD operations for task management. Backs the Tasks agent's create, list, and prioritise workflows. Per-session in-memory in demo mode.</p>
+      </div>
+    </div>
+
+    <!-- Knowledge & Storage -->
+    <div class="section-head">
+      <span class="material-symbols-outlined" style="font-size:16px;color:rgba(255,255,255,.4)">storage</span>
+      <span class="section-title">Knowledge & Storage</span>
+    </div>
+    <div class="tool-grid">
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(52,168,83,.12);border:1px solid rgba(52,168,83,.2)"><span class="material-symbols-outlined" style="color:#34A853;font-size:18px">note_stack</span></div>
+          <div><div class="tool-name">Notion</div><span class="tool-badge">API Key · Sage</span></div>
+        </div>
+        <p class="tool-desc">Page creation and updates via Notion API. Sage writes structured research artifacts directly to your Notion workspace.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(62,207,142,.12);border:1px solid rgba(62,207,142,.2)"><span class="material-symbols-outlined" style="color:#3ECF8E;font-size:18px">database</span></div>
+          <div><div class="tool-name">Supabase / pgvector</div><span class="tool-badge">API Key · Mnemo</span></div>
+        </div>
+        <p class="tool-desc">4-layer memory: threads, context_items, agent_traces, and semantic memories with pgvector cosine similarity search via Gemini embeddings.</p>
+      </div>
+    </div>
+
+    <!-- Weather & Context -->
+    <div class="section-head">
+      <span class="material-symbols-outlined" style="font-size:16px;color:rgba(255,255,255,.4)">cloud</span>
+      <span class="section-title">Weather & Context</span>
+    </div>
+    <div class="tool-grid">
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(249,171,0,.12);border:1px solid rgba(249,171,0,.2)"><span class="material-symbols-outlined" style="color:#F9AB00;font-size:18px">thermostat</span></div>
+          <div><div class="tool-name">OpenWeatherMap</div><span class="tool-badge">API Key · Briefing</span></div>
+        </div>
+        <p class="tool-desc">Global current conditions and 5-day forecasts. Used by the Briefing agent for daily context synthesis. Falls back to wttr.in if key is absent.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(0,188,212,.12);border:1px solid rgba(0,188,212,.2)"><span class="material-symbols-outlined" style="color:#00BCD4;font-size:18px">wb_sunny</span></div>
+          <div><div class="tool-name">wttr.in (Fallback)</div><span class="tool-badge">Free · No Auth · Briefing</span></div>
+        </div>
+        <p class="tool-desc">Keyless weather fallback. Returns the same structured JSON as OpenWeatherMap. Ensures the Briefing agent always has weather context.</p>
+      </div>
+    </div>
+
+    <!-- AI Core -->
+    <div class="section-head">
+      <span class="material-symbols-outlined" style="font-size:16px;color:rgba(255,255,255,.4)">psychology</span>
+      <span class="section-title">AI Core</span>
+    </div>
+    <div class="tool-grid">
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(147,52,230,.12);border:1px solid rgba(147,52,230,.2)"><span class="material-symbols-outlined" style="color:#9334E6;font-size:18px">auto_awesome</span></div>
+          <div><div class="tool-name">Gemini 2.0 Flash</div><span class="tool-badge">Google API Key · Orchestrator</span></div>
+        </div>
+        <p class="tool-desc">Phase plan generation, agent response synthesis, and intent classification. Also generates text-embedding-004 vectors for Mnemo's L4 vault.</p>
+      </div>
+      <div class="glass tool-card">
+        <div class="tool-header">
+          <div class="tool-icon" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)"><span class="material-symbols-outlined" style="color:#fff;font-size:18px">bolt</span></div>
+          <div><div class="tool-name">NEXUS Booster</div><span class="tool-badge">Local · Zero-latency</span></div>
+        </div>
+        <p class="tool-desc">Deterministic local logic engine. Intercepts math, time/date, and formatting queries before they reach the LLM — resolves in &lt;1ms.</p>
+      </div>
+    </div>
+
+    <div style="height:40px"></div>
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+</body>
+</html>

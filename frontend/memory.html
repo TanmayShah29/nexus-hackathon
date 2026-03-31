@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS OS | Memory Vault</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={darkMode:"class",theme:{extend:{
+  colors:{"surface":"#131313","on-surface":"#e5e2e1","on-surface-variant":"#c6c6c6","secondary":"#ddb7ff","tertiary":"#71f8e4","background":"#0B0B0B","surface-container":"#201f1f","outline-variant":"#474747"},
+  fontFamily:{"headline":["Plus Jakarta Sans"],"body":["Plus Jakarta Sans"]},
+  borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"9999px"}
+}}}
+</script>
+<style>
+*{box-sizing:border-box}
+body{background:#0B0B0B;background-image:radial-gradient(#FFFFFF0D 1px,transparent 1px);background-size:40px 40px;color:#e5e2e1;font-family:"Plus Jakarta Sans",sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+.glass{background:rgba(26,26,26,.5);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.08)}
+
+/* ── App shell ── */
+#app{display:flex;flex:1;overflow:hidden}
+#sidenav{width:80px;border-right:1px solid rgba(255,255,255,.07);background:rgba(26,26,26,.5);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:8px;flex-shrink:0}
+#main-content{flex:1;overflow-y:auto;padding:40px 48px}
+#main-content::-webkit-scrollbar{width:4px}
+#main-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+
+@media(max-width:768px){
+  #sidenav{display:none}
+  #main-content{padding:20px 16px}
+}
+
+.nav-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);cursor:pointer;border-radius:4px;transition:all .15s;margin:4px 0}
+.nav-icon:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-icon.active{color:#fff;background:rgba(255,255,255,.1);box-shadow:0 0 12px rgba(255,255,255,.08)}
+
+/* ── Stats grid ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px}
+@media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr}}
+
+.stat-card{padding:28px 24px;display:flex;flex-direction:column;gap:16px}
+.stat-icon{display:flex;justify-content:space-between;align-items:center}
+.stat-val{font-size:24px;font-weight:700;letter-spacing:-.02em;text-transform:uppercase}
+.stat-label{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.35);font-weight:600}
+.stat-desc{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* ── Main grid ── */
+.main-grid{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+@media(max-width:1200px){.main-grid{grid-template-columns:1fr}}
+
+/* ── Nebula canvas ── */
+#nebula-wrap{height:580px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+#nebula-canvas{flex:1;background:#0D0D0D;position:relative}
+
+/* ── Trace feed ── */
+#trace-panel{display:flex;flex-direction:column;overflow:hidden}
+#trace-feed-wrap{max-height:540px;overflow-y:auto;padding:20px}
+#trace-feed-wrap::-webkit-scrollbar{width:3px}
+#trace-feed-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+.trace-item{border-left:2px solid rgba(255,255,255,.1);padding:8px 0 8px 12px;margin-bottom:12px}
+.trace-item.running{border-color:#F9AB00}
+.trace-item.done{border-color:#34A853}
+.trace-item.error{border-color:#EA4335}
+
+/* ── Pulse ring animation for nebula ── */
+@keyframes pulse-ring{
+  0%{transform:scale(.8);opacity:.1}
+  50%{transform:scale(1.2);opacity:.25}
+  100%{transform:scale(.8);opacity:.1}
+}
+.pulse-ring{animation:pulse-ring 8s ease-in-out infinite}
+</style>
+<script src="nexus-core.js"></script>
+</head>
+<body>
+
+<!-- Top bar -->
+<header style="height:64px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(11,11,11,.6);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;z-index:50">
+  <div style="font-size:18px;font-weight:800;letter-spacing:-.04em;text-transform:uppercase;color:#fff">NEXUS OS</div>
+  <div style="display:flex;gap:32px;align-items:center" class="hidden md:flex">
+    <a href="/" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none;transition:color .15s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Home</a>
+    <a href="/studio" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Studio</a>
+    <a href="/memory" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:#fff;text-decoration:none">Memory</a>
+    <a href="/mcp" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.4);text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Tools</a>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);background:transparent;border:none;cursor:pointer;border-radius:4px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'"><span class="material-symbols-outlined" style="font-size:20px">settings</span></button>
+    <button style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);background:transparent;border:none;cursor:pointer;border-radius:4px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'"><span class="material-symbols-outlined" style="font-size:20px">account_circle</span></button>
+  </div>
+</header>
+
+<div id="app">
+  <!-- Side nav -->
+  <nav id="sidenav">
+    <div class="nav-icon" onclick="location.href='/'"><span class="material-symbols-outlined">home</span></div>
+    <div class="nav-icon" onclick="location.href='/studio'"><span class="material-symbols-outlined">terminal</span></div>
+    <div class="nav-icon active"><span class="material-symbols-outlined">database</span></div>
+    <div class="nav-icon" onclick="location.href='/mcp'"><span class="material-symbols-outlined">inventory_2</span></div>
+  </nav>
+
+  <!-- Main scrollable content -->
+  <div id="main-content">
+
+    <!-- Page header -->
+    <div style="margin-bottom:32px">
+      <h1 style="font-size:clamp(2rem,4vw,3.5rem);font-weight:800;letter-spacing:-.04em;text-transform:uppercase;color:#fff;line-height:1">Neural Link</h1>
+      <p style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:8px;font-weight:600">Memory Vault / Supabase Persistence</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="glass stat-card">
+        <div class="stat-icon">
+          <span class="material-symbols-outlined" style="color:rgba(255,255,255,.5);font-size:20px">bolt</span>
+          <span class="stat-label">Threads</span>
+        </div>
+        <div>
+          <div class="stat-val" id="thread-count">—</div>
+          <div class="stat-desc">Active sessions</div>
+        </div>
+      </div>
+      <div class="glass stat-card">
+        <div class="stat-icon">
+          <span class="material-symbols-outlined" style="color:rgba(255,255,255,.5);font-size:20px">layers</span>
+          <span class="stat-label">Context</span>
+        </div>
+        <div>
+          <div class="stat-val" id="context-count">—</div>
+          <div class="stat-desc">Blackboard items</div>
+        </div>
+      </div>
+      <div class="glass stat-card">
+        <div class="stat-icon">
+          <span class="material-symbols-outlined" style="color:rgba(255,255,255,.5);font-size:20px">hub</span>
+          <span class="stat-label">Memories</span>
+        </div>
+        <div>
+          <div class="stat-val" id="memory-count">—</div>
+          <div class="stat-desc">Vector-indexed</div>
+        </div>
+      </div>
+      <div class="glass stat-card" style="border-color:rgba(113,248,228,.15)">
+        <div class="stat-icon">
+          <span class="material-symbols-outlined" style="color:#71f8e4;font-size:20px">analytics</span>
+          <span class="stat-label" style="color:rgba(113,248,228,.5)">Health</span>
+        </div>
+        <div>
+          <div class="stat-val" id="health-status" style="font-size:16px">Checking…</div>
+          <div class="stat-desc" id="health-mode">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main grid: nebula + traces -->
+    <div class="main-grid">
+
+      <!-- Nebula canvas -->
+      <div class="glass" id="nebula-wrap">
+        <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:600">Semantic Nebula</span>
+          <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);padding:3px 10px">Real-time Vector Map</span>
+        </div>
+        <div id="nebula-canvas">
+          <!-- Animated pulse ring behind nodes -->
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+            <div class="pulse-ring" style="width:320px;height:320px;border-radius:50%;border:1px solid rgba(255,255,255,.04)"></div>
+          </div>
+          <div id="nodes-container" style="position:absolute;inset:0"></div>
+          <div id="nebula-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+            <p style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.15)">Waiting for memory writes…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trace feed -->
+      <div class="glass" id="trace-panel" style="border-radius:inherit">
+        <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:600">Cognitive Traces</span>
+          <div id="live-dot" style="width:6px;height:6px;border-radius:50%;background:#71f8e4;animation:pulse-ring 2s ease-in-out infinite;opacity:0;transition:opacity .3s"></div>
+        </div>
+        <div id="trace-feed-wrap">
+          <div id="trace-empty" style="padding:48px 0;text-align:center;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.15)">Monitoring Supabase…</div>
+          <div id="trace-feed"></div>
+        </div>
+      </div>
+
+    </div><!-- /main-grid -->
+
+    <!-- Memory layer reference -->
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div class="glass" style="padding:16px 20px">
+        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#4285F4;font-weight:700;margin-bottom:6px">L1 · Blackboard</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">Reactive in-memory dot-notation KV store. Shared across all agents per session.</div>
+      </div>
+      <div class="glass" style="padding:16px 20px">
+        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#34A853;font-weight:700;margin-bottom:6px">L2 · JSON Disk</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">Session blackboard persisted to storage/blackboard.json. Survives server restarts.</div>
+      </div>
+      <div class="glass" style="padding:16px 20px">
+        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#EA4335;font-weight:700;margin-bottom:6px">L3 · Supabase Context</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">context_items table. Structured facts and preferences synced from the blackboard.</div>
+      </div>
+      <div class="glass" style="padding:16px 20px">
+        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#9334E6;font-weight:700;margin-bottom:6px">L4 · pgvector</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">Gemini text-embedding-004 → cosine similarity search. Permanent semantic vault.</div>
+      </div>
+    </div>
+
+    <div style="height:40px"></div>
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<script>
+/* ─── Trace feed ─────────────────────────────────────────── */
+const AGENT_COLORS = NEXUS_CORE.AGENT_COLORS;
+const traceFeed  = document.getElementById('trace-feed');
+const traceEmpty = document.getElementById('trace-empty');
+const liveDot    = document.getElementById('live-dot');
+
+function appendTrace(t, prepend = false) {
+  if (traceEmpty) traceEmpty.style.display = 'none';
+  liveDot.style.opacity = '1';
+  const col = AGENT_COLORS[t.agent_id] || '#fff';
+  const statusColors = { running:'#F9AB00', done:'#34A853', error:'#EA4335' };
+  const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '';
+  const item = document.createElement('div');
+  item.className = `trace-item ${t.status || ''}`;
+  item.style.borderLeftColor = statusColors[t.status] || 'rgba(255,255,255,.1)';
+  item.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${col}">${t.agent_id || '—'}</span>
+      <span style="font-size:9px;color:rgba(255,255,255,.3)">${time}</span>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">${t.message || 'Cognitive shift.'}</div>
+  `;
+  if (prepend) traceFeed.prepend(item);
+  else traceFeed.appendChild(item);
+  /* keep last 40 */
+  while (traceFeed.children.length > 40) traceFeed.removeChild(traceFeed.lastChild);
+}
+
+/* ─── Stats ─────────────────────────────────────────────── */
+async function loadStats() {
+  if (!NEXUS_CORE.supabase) return;
+  try {
+    const [threads, ctx, mems] = await Promise.all([
+      NEXUS_CORE.supabase.from('threads').select('*', { count: 'exact', head: true }),
+      NEXUS_CORE.supabase.from('context_items').select('*', { count: 'exact', head: true }),
+      NEXUS_CORE.supabase.from('memories').select('*', { count: 'exact', head: true }),
+    ]);
+    document.getElementById('thread-count').textContent  = threads.count ?? 0;
+    document.getElementById('context-count').textContent = ctx.count ?? 0;
+    document.getElementById('memory-count').textContent  = mems.count ?? 0;
+  } catch (e) {
+    console.warn('Stats load failed:', e);
+  }
+}
+
+async function loadHealth() {
+  const h = await NEXUS_CORE.getHealth();
+  const el = document.getElementById('health-status');
+  const mo = document.getElementById('health-mode');
+  if (h) {
+    el.textContent = h.status === 'ok' ? 'NOMINAL' : 'DEGRADED';
+    el.style.color = h.status === 'ok' ? '#71f8e4' : '#EA4335';
+    mo.textContent = `${h.mode} · v${h.version} · ${h.agents_loaded} agents`;
+  } else {
+    el.textContent = 'OFFLINE';
+    el.style.color = '#EA4335';
+    mo.textContent = 'API unreachable';
+  }
+}
+
+/* ─── Real-time trace stream ─────────────────────────────── */
+async function streamTraces() {
+  if (!NEXUS_CORE.supabase) return;
+  try {
+    const { data } = await NEXUS_CORE.supabase
+      .from('agent_traces')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(20);
+    if (data?.length) {
+      traceEmpty.style.display = 'none';
+      [...data].reverse().forEach(t => appendTrace(t));
+    }
+
+    NEXUS_CORE.supabase
+      .channel('nexus-traces')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_traces' }, p => {
+        appendTrace(p.new, true);
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Trace stream failed:', e);
+  }
+}
+
+/* ─── Boot ──────────────────────────────────────────────── */
+NEXUS_CORE.whenReady(() => {
+  loadHealth();
+  streamTraces();
+  loadStats();
+});
+</script>
+</body>
+</html>

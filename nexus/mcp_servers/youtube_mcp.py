@@ -2,11 +2,11 @@
 youtube_mcp.py — YouTube Transcript MCP (youtube-transcript-api)
 """
 
-import os
-from typing import Any, Optional
+from typing import Any
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
 YOUTUBE_FIXTURE = {

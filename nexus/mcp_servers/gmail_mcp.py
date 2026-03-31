@@ -2,11 +2,11 @@
 gmail_mcp.py — Gmail MCP (fixture)
 """
 
-import os
 from typing import Any
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+from nexus.config import get_demo_mode
+DEMO_MODE = get_demo_mode()
 
 
 GMAIL_FIXTURE = [

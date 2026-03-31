@@ -2,12 +2,12 @@
 notion_mcp.py — Notion MCP (Notion API or Firestore fallback)
 """
 
-import os
 from typing import Any
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
-NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
+from nexus.config import get_demo_mode, get_notion_token
+DEMO_MODE = get_demo_mode()
+NOTION_TOKEN = get_notion_token()
 
 
 NOTION_FIXTURE = [

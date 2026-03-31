@@ -15,7 +15,11 @@ class SessionCache:
     Layer 1 memory: in-memory session state.
 
     Each session gets its own isolated dict.
-    Thread-safe for concurrent access.
+    Thread-safe for concurrent access via threading.Lock.
+    
+    NOTE: In an async environment, threading.Lock is safe as long as no
+    'await' calls are made inside the lock. If asynchronous yields are
+    needed, switch to asyncio.Lock.
     """
 
     def __init__(self, session_id: str, ttl_seconds: int = 3600):

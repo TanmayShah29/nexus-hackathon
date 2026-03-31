@@ -1,533 +1,366 @@
 """
-schemas.py — NEXUS data contracts
-
-Every model used across the entire project is defined here.
-Both backend and frontend build against these shapes.
-Nothing else imports from each other — only from here.
+schemas.py — NEXUS Unified Schema Layer
+All Pydantic models, enums, registries, and type aliases live here.
 """
-
 from __future__ import annotations
-from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field
-from datetime import datetime
 import uuid
-
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Literal, Optional, Union
+from pydantic import BaseModel, Field, ConfigDict
 
 # ─────────────────────────────────────────────
-# ENUMS / LITERALS
+# ENUMS & TYPES
 # ─────────────────────────────────────────────
 
+# FIX: Added all agent names including new specialists and "system"
 AgentName = Literal[
-    "nexus_core",
-    "atlas",
-    "chrono",
-    "sage",
-    "dash",
-    "mnemo",
-    "flux",
-    "quest",
-    "lumen",
-    "forge",
+    "orchestrator", "atlas", "chrono", "sage", "mnemo", "system",
+    "goals", "analytics", "workflow", "briefing", "tasks", "booster", "tools"
 ]
 
-AgentStatus = Literal["idle", "ready", "thinking", "working", "done", "error"]
+AgentStatus = Literal["idle", "thinking", "working", "done", "error"]
 TraceStatus = Literal["running", "done", "error", "skipped"]
-WorkflowType = Literal["exam_prep", "day_planner", "research_loop", "simple", "unknown"]
-MemoryLayer = Literal["working", "daily", "profile", "semantic"]
+MemoryLayer = Literal["register", "working", "daily", "eternal"]
 Priority = Literal["low", "medium", "high", "urgent"]
 
-
 # ─────────────────────────────────────────────
-# INBOUND — what the frontend sends
-# ─────────────────────────────────────────────
-
-class ChatRequest(BaseModel):
-    """Sent by frontend to POST /chat"""
-    prompt: str = Field(..., description="The user's natural language prompt")
-    user_id: str = Field(default="demo-user", description="User identifier")
-    session_id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique session ID for this conversation turn"
-    )
-    demo_mode: bool = Field(default=True, description="Use fixture data instead of live APIs")
-
-    model_config = {"json_schema_extra": {
-        "example": {
-            "prompt": "Prepare for my Python exam tomorrow",
-            "user_id": "demo-user",
-            "demo_mode": True
-        }
-    }}
-
-
-# ─────────────────────────────────────────────
-# TRACE EVENTS — emitted via SSE stream
+# AGENT IDENTITY
 # ─────────────────────────────────────────────
 
-class TraceEvent(BaseModel):
-    """
-    One event in the live agent trace stream.
-    Frontend receives these via SSE and updates the UI in real time.
+class AgentIdentity(BaseModel):
+    name: AgentName
+    display_name: str
+    role: str
+    tagline: str
+    personality: str
+    color_neon: str
+    color_soft: str
+    icon_slug: str
+    capabilities: List[str]
 
-    Each event maps to one MCP card update in the left rail
-    and one node pulse in the agent coordination graph.
-    """
-    event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    session_id: str
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
-    # Which agent is acting
-    agent: AgentName
-    agent_display_name: str          # e.g. "Atlas", "Chrono"
+class NeuralPulse(BaseModel):
+    pulse_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    source_node: str = "nexus-core"
+    target_nodes: List[str]
+    intensity: float = 1.0
+    color: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    # What tool / MCP server it's calling
-    tool: str                        # e.g. "tavily_search", "google_calendar"
-    tool_display_name: str           # e.g. "Tavily Search", "Google Calendar"
 
-    # What it's doing right now
-    action: str                      # e.g. "Searching for Python OOP topics..."
-    status: TraceStatus
+# ─────────────────────────────────────────────
+# MCP CARD DETAIL (Tracer / SSE Detail Objects)
+# ─────────────────────────────────────────────
 
-    # Full detail — shown when user clicks the MCP card
-    detail: Optional[MCPCardDetail] = None
+class MCPStep(BaseModel):
+    step_number: int
+    title: str
+    description: str = ""
+    api_endpoint: Optional[str] = None
+    result_summary: Optional[str] = None
+    tag: Optional[str] = None
+    tag_type: Optional[str] = None  # "success" | "warning" | "error"
 
-    # Which workflow step this belongs to (if inside a pipeline)
-    workflow_step: Optional[int] = None
-    workflow_total_steps: Optional[int] = None
+
+class StateWrite(BaseModel):
+    key: str
+    value_summary: str
+    written_by: AgentName
+    read_by: Optional[List[str]] = None
+
+
+class MemoryWrite(BaseModel):
+    layer: str
+    layer_display: str
+    content: str
+    importance_score: Optional[int] = None
+
+
+class ConflictResolution(BaseModel):
+    conflict: str
+    resolution: str
+    resolution_type: str = "auto"
 
 
 class MCPCardDetail(BaseModel):
-    """
-    Full breakdown of what one agent did via one MCP tool.
-    Shown when the user clicks a completed MCP card in the left rail.
-    This is the core transparency / explainability feature.
-    """
     agent: AgentName
     agent_display_name: str
     tool: str
     tool_display_name: str
+    status: TraceStatus = "done"
+    api_calls_made: int = 1
     duration_ms: Optional[int] = None
-    api_calls_made: int = 0
-    status: TraceStatus
-
-    # Step-by-step breakdown of what the agent did
-    steps: list[MCPStep] = Field(default_factory=list)
-
-    # Data written to session.state for the next agent
-    session_state_writes: list[StateWrite] = Field(default_factory=list)
-
-    # What Mnemo saved to memory from this interaction
-    memory_writes: list[MemoryWrite] = Field(default_factory=list)
-
-    # Any conflicts detected and how they were resolved
-    conflicts_resolved: list[ConflictResolution] = Field(default_factory=list)
-
-    # Raw output (summarised) from the MCP tool
+    steps: List[MCPStep] = Field(default_factory=list)
+    session_state_writes: List[StateWrite] = Field(default_factory=list)
+    memory_writes: List[MemoryWrite] = Field(default_factory=list)
+    conflicts_resolved: List[ConflictResolution] = Field(default_factory=list)
     raw_output_summary: Optional[str] = None
-
-
-class MCPStep(BaseModel):
-    """One discrete step within an MCP tool call"""
-    step_number: int
-    title: str                       # e.g. "Step 1 — Read free calendar slots"
-    description: str                 # e.g. "Called calendar.list_events for tomorrow..."
-    api_endpoint: Optional[str] = None
-    result_summary: Optional[str] = None
-    tag: Optional[str] = None        # e.g. "3 events found", "Conflict resolved"
-    tag_type: Optional[Literal["success", "info", "warning", "error"]] = None
-
-
-class StateWrite(BaseModel):
-    """A key-value pair written to session.state"""
-    key: str                         # e.g. "atlas_topics"
-    value_summary: str               # e.g. "List of 14 Python syllabus topics"
-    written_by: AgentName
-    read_by: Optional[list[AgentName]] = None   # agents downstream that will read this
-
-
-class MemoryWrite(BaseModel):
-    """Something Mnemo committed to one of the 4 memory layers"""
-    layer: MemoryLayer
-    layer_display: str               # e.g. "Daily log", "Long-term profile"
-    content: str                     # e.g. "User preparing for Python exam"
-    importance_score: Optional[int] = None    # 1-5, only Layer 3 if ≥ 3
-    committed: bool = True
-
-
-class ConflictResolution(BaseModel):
-    """A conflict detected and resolved during a tool call"""
-    conflict: str                    # e.g. "Team standup at 10:00 overlaps study slot"
-    resolution: str                  # e.g. "Adjusted slot to 10:15–11:00"
-    resolution_type: Literal["auto", "suggested", "skipped"]
+    resource_id: Optional[str] = None
+    resource_link: Optional[str] = None
 
 
 # ─────────────────────────────────────────────
-# AGENT RESULT — what every agent returns
+# TRACE & COMMUNICATION
 # ─────────────────────────────────────────────
 
-class AgentResult(BaseModel):
-    """
-    Structured output from every agent.
-    Using structured output via Pydantic ensures the frontend
-    can always populate MCP cards reliably — no free-form parsing.
-    """
+class TraceEvent(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str = ""
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     agent: AgentName
-    agent_display_name: str
-    session_id: str
-    workflow_type: WorkflowType = "simple"
+    agent_display_name: str = ""
+    tool: str = ""
+    tool_display_name: str = ""
+    action: str
+    status: TraceStatus
+    detail: Optional[MCPCardDetail] = None
+    workflow_step: Optional[int] = None
+    workflow_total_steps: Optional[int] = None
+    pulsing: bool = False
 
-    # The human-readable response to show in the center panel
-    summary: str
-    # Longer formatted response (markdown supported)
-    full_response: str
-
-    # All tool calls made during this agent's execution
-    tool_calls: list[MCPCardDetail] = Field(default_factory=list)
-
-    # All memory writes Mnemo performed after this agent ran
-    memory_writes: list[MemoryWrite] = Field(default_factory=list)
-
-    # Proactive suggestion chips shown below the response
-    suggestions: list[SuggestionChip] = Field(default_factory=list)
-
-    # How confident the agent is in its output (0.0–1.0)
-    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-
-    # Whether this result came from live APIs or fixture data
-    from_demo_mode: bool = False
-
-    # Timestamp
-    completed_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-
-
-# ─────────────────────────────────────────────
-# SUGGESTION CHIPS — proactive follow-ups
-# ─────────────────────────────────────────────
 
 class SuggestionChip(BaseModel):
-    """
-    A proactive follow-up suggestion shown below the response.
-    Clicking a chip sends it as a new prompt automatically.
-    This replaces the heartbeat daemon — proactive intelligence
-    is shown inline after every response.
-    """
-    label: str           # e.g. "Schedule a revision session for next week"
-    prompt: str          # The prompt sent when the chip is clicked (can differ from label)
-    agent_hint: AgentName   # Which agent will likely handle this
+    label: str
+    prompt: str
+    context_hint: Optional[str] = None
+    agent_hint: Optional[str] = None
 
 
-# ─────────────────────────────────────────────
-# WORKFLOW STATUS — for long-running pipelines
-# ─────────────────────────────────────────────
+class AgentResult(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-class WorkflowStatus(BaseModel):
-    """Current state of a multi-step workflow"""
-    workflow_id: str
+    agent: AgentName
     session_id: str
-    workflow_type: WorkflowType
-    status: Literal["pending", "running", "completed", "failed"]
-    current_step: int = 0
-    total_steps: int = 0
-    percent_complete: float = 0.0
-    active_agent: Optional[AgentName] = None
-    steps_completed: list[str] = Field(default_factory=list)
-    started_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    completed_at: Optional[str] = None
-    error: Optional[str] = None
+    summary: str
+    markdown_content: str = ""
+    # Support both old (full_response) and new (markdown_content) field names
+    full_response: Optional[str] = None
+    suggestions: List[SuggestionChip] = Field(default_factory=list)
+    metrics: Dict[str, Union[int, float]] = Field(default_factory=dict)
+    confidence: float = 1.0
+    workflow_type: Optional[str] = None
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    memory_writes: List[MemoryWrite] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def get_content(self) -> str:
+        """Return the main textual content regardless of which field was set."""
+        return self.markdown_content or self.full_response or ""
 
 
 # ─────────────────────────────────────────────
-# MEMORY MODELS — Mnemo's 4 layers
+# CHAT REQUEST
 # ─────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    prompt: str
+    user_id: str = "default_user"
+    session_id: str = Field(default_factory=lambda: f"nexus-{uuid.uuid4().hex[:8]}")
+    plan: Optional[List[List[Dict[str, str]]]] = None
+
+
+# ─────────────────────────────────────────────
+# MEMORY MODELS
+# ─────────────────────────────────────────────
+
+class MemoryNode(BaseModel):
+    id: str
+    label: str
+    layer: str
+    radius: int = 12
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryLink(BaseModel):
+    source: str
+    target: str
+    strength: float = 0.5
+    color: Optional[str] = None
+
+
+class MemoryGraph(BaseModel):
+    nodes: List[MemoryNode]
+    links: List[MemoryLink]
+
 
 class MemoryEntry(BaseModel):
-    """A single entry in any of Mnemo's memory layers"""
     entry_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    layer: MemoryLayer
+    layer: str
     content: str
-    agent_source: AgentName          # Which agent triggered this memory write
-    importance_score: Optional[int] = None   # 1–5
-    tags: list[str] = Field(default_factory=list)
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    session_id: Optional[str] = None
+    agent_source: AgentName
+    tags: List[str] = Field(default_factory=list)
+    importance_score: int = 1
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    embedding_stub: Optional[List[float]] = None
 
 
+# Memory route response models
 class UserMemory(BaseModel):
-    """All 4 memory layers for a user — returned by GET /memory/{user_id}"""
     user_id: str
-    working: dict[str, Any] = Field(default_factory=dict)      # Layer 1: session.state
-    daily: list[MemoryEntry] = Field(default_factory=list)      # Layer 2: today's log
-    profile: list[MemoryEntry] = Field(default_factory=list)    # Layer 3: long-term
-    semantic_results: list[MemoryEntry] = Field(default_factory=list)  # Layer 4: vector search
+    working: Dict[str, Any] = Field(default_factory=dict)
+    daily: List[Any] = Field(default_factory=list)
+    profile: List[MemoryEntry] = Field(default_factory=list)
+    semantic_results: List[MemoryEntry] = Field(default_factory=list)
+
+
+class Node(BaseModel):
+    id: str
+    label: str
+    type: str = "semantic"
+    r: int = 12
+
+
+class Link(BaseModel):
+    source: str
+    target: str
+    type: str = "related"
+
+
+class GraphData(BaseModel):
+    nodes: List[Node]
+    links: List[Link]
 
 
 # ─────────────────────────────────────────────
-# TASK MODEL — Dash's domain
-# ─────────────────────────────────────────────
-
-class Task(BaseModel):
-    """A task managed by Dash"""
-    task_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    title: str
-    description: Optional[str] = None
-    priority: Priority = "medium"
-    status: Literal["pending", "in_progress", "done", "cancelled"] = "pending"
-    due_date: Optional[str] = None
-    tags: list[str] = Field(default_factory=list)
-    created_by: AgentName = "dash"
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    completed_at: Optional[str] = None
-
-
-# ─────────────────────────────────────────────
-# AGENT INFO — for GET /agents endpoint
-# ─────────────────────────────────────────────
-
-class AgentInfo(BaseModel):
-    """Static info + live status for one agent — shown in right rail"""
-    name: AgentName
-    display_name: str            # e.g. "Atlas"
-    role: str                    # e.g. "Research agent"
-    tagline: str                 # e.g. "Curious Scholar"
-    personality: str             # One sentence personality description
-    color: str                   # Hex color e.g. "#1a73e8"
-    color_bg: str                # Light background hex e.g. "#E8F0FE"
-    owned_mcps: list[str]        # MCP tools this agent owns
-    capabilities: list[str]      # Human-readable capability list
-    adk_type: str                # e.g. "LlmAgent", "SequentialAgent"
-    status: AgentStatus = "idle"
-    current_action: Optional[str] = None   # e.g. "Searching for Python topics..."
-    is_stub: bool = False        # True for agents with mock responses
-
-
-# ─────────────────────────────────────────────
-# API RESPONSES
+# SYSTEM / HEALTH
 # ─────────────────────────────────────────────
 
 class HealthResponse(BaseModel):
-    status: Literal["ok", "degraded", "error"] = "ok"
-    mode: Literal["demo", "live"] = "demo"
+    status: str = "ready"
+    mode: str = "demo"
     version: str = "1.0.0"
     agents_loaded: int = 0
     mcp_servers_ready: int = 0
 
 
+class AgentInfo(BaseModel):
+    name: AgentName
+    display_name: str
+    role: str
+    color_neon: str
+    capabilities: List[str]
+
+
 class AgentsResponse(BaseModel):
-    agents: list[AgentInfo]
+    agents: List[AgentInfo]
     total: int
 
 
-class ErrorResponse(BaseModel):
-    error: str
-    detail: Optional[str] = None
-    session_id: Optional[str] = None
-
-
 # ─────────────────────────────────────────────
-# AGENT REGISTRY — single source of truth for all 9 agents
+# REGISTRIES
 # ─────────────────────────────────────────────
 
-AGENT_REGISTRY: list[AgentInfo] = [
-    AgentInfo(
-        name="nexus_core",
-        display_name="NEXUS Core",
-        role="Orchestrator",
-        tagline="Your Personal Coordinator",
-        personality="Silent and precise. Routes every intent to the right specialist. Never speaks in the final response — coordinates everything behind the scenes.",
-        color="#4285F4",
-        color_bg="#E8F0FE",
-        owned_mcps=["all"],
-        capabilities=[
-            "Classifies user intent into the right workflow",
-            "Coordinates all 9 specialist agents",
-            "Retains full context across multi-step workflows",
-            "Routes to SequentialAgent, ParallelAgent, or LoopAgent as needed",
-        ],
-        adk_type="LlmAgent + AgentTool wrappers",
-        is_stub=False,
+# FIX: Added "system" and all new agent names to AGENT_IDENTITY_MAP
+AGENT_IDENTITY_MAP: Dict[AgentName, AgentIdentity] = {
+    "atlas": AgentIdentity(
+        name="atlas", display_name="Atlas", role="Intelligence Specialist",
+        tagline="Web Synthesis & Analytical Search",
+        personality="Precise, academic, and deeply analytical.",
+        color_neon="#1a73e8", color_soft="#E8F0FE", icon_slug="globe-alt",
+        capabilities=["Web Intelligence", "Syllabus Extraction", "Data Synthesis"]
     ),
-    AgentInfo(
-        name="atlas",
-        display_name="Atlas",
-        role="Research agent",
-        tagline="Curious Scholar",
-        personality="Endlessly curious. Always cites sources. Gets excited about rabbit holes. Speaks in bullet points. Never guesses — always verifies.",
-        color="#1a73e8",
-        color_bg="#E8F0FE",
-        owned_mcps=["tavily_search", "brave_search", "wikipedia", "youtube_transcript", "web_scraper"],
-        capabilities=[
-            "Web search via Tavily and Brave Search",
-            "Wikipedia article retrieval",
-            "YouTube lecture transcript extraction",
-            "Website scraping with BeautifulSoup",
-            "Multi-source research synthesis with citations",
-            "Iterative quality scoring in research loop",
-        ],
-        adk_type="LlmAgent",
-        is_stub=False,
+    "chrono": AgentIdentity(
+        name="chrono", display_name="Chrono", role="Action Specialist",
+        tagline="Time, Tasks & Commitments",
+        personality="Punctual, organized, and focused on execution.",
+        color_neon="#EA4335", color_soft="#FCE8E6", icon_slug="clock",
+        capabilities=["Calendar Sync", "Task Decomposition", "Goal Tracking"]
     ),
-    AgentInfo(
-        name="chrono",
-        display_name="Chrono",
-        role="Scheduler agent",
-        tagline="Efficient Timekeeper",
-        personality="Punctual and assertive. Hates calendar conflicts. Optimistic about fitting things in. Speaks in time blocks. Always finds a slot.",
-        color="#EA4335",
-        color_bg="#FCE8E6",
-        owned_mcps=["google_calendar", "google_maps", "openweathermap"],
-        capabilities=[
-            "Read and create Google Calendar events",
-            "Detect and auto-resolve scheduling conflicts",
-            "Find optimal free time slots",
-            "Calculate travel time via Google Maps",
-            "Adjust schedule based on weather conditions",
-            "Create deep work time-blocks",
-        ],
-        adk_type="LlmAgent",
-        is_stub=False,
+    "sage": AgentIdentity(
+        name="sage", display_name="Sage", role="Structure Specialist",
+        tagline="Knowledge Architecture & Strategy",
+        personality="Philosophical, strategic, and focused on long-term growth.",
+        color_neon="#34A853", color_soft="#E6F4EA", icon_slug="academic-cap",
+        capabilities=["Strategy Roadmaps", "Note Architecture", "Semantic Linking"]
     ),
-    AgentInfo(
-        name="sage",
-        display_name="Sage",
-        role="Notes agent",
-        tagline="Notes Librarian",
-        personality="Quiet and organised. Loves categories and tags. Can find anything instantly. Speaks softly but remembers everything.",
-        color="#34A853",
-        color_bg="#E6F4EA",
-        owned_mcps=["notion", "filesystem", "google_drive", "firestore"],
-        capabilities=[
-            "Store and retrieve notes from Notion / Firestore",
-            "Semantic search across all stored notes",
-            "Convert research into structured note pages",
-            "Ingest uploaded PDF and document files",
-            "Tag and categorise information automatically",
-            "Maintain a searchable second brain",
-        ],
-        adk_type="LlmAgent",
-        is_stub=False,
+    "mnemo": AgentIdentity(
+        name="mnemo", display_name="Mnemo", role="Memory Specialist",
+        tagline="Total Semantic Recall",
+        personality="Ambient, quiet, and deeply intuitive.",
+        color_neon="#9334E6", color_soft="#F3E8FD", icon_slug="sparkles",
+        capabilities=["Semantic Retrieval", "Preference Learning", "Identity Persistence"]
     ),
-    AgentInfo(
-        name="dash",
-        display_name="Dash",
-        role="Tasks agent",
-        tagline="No-Nonsense Executor",
-        personality="Direct and energetic. Short sentences. Loves ticking things off. Gets frustrated by vague goals — breaks them into actionable steps immediately.",
-        color="#FBBC04",
-        color_bg="#FEF7E0",
-        owned_mcps=["firestore", "notion"],
-        capabilities=[
-            "Create, update, and complete tasks",
-            "Auto-prioritise by deadline and energy level",
-            "Break big goals into actionable subtasks",
-            "Track task completion history",
-            "Generate daily task summaries",
-        ],
-        adk_type="LlmAgent",
-        is_stub=True,
+    "orchestrator": AgentIdentity(
+        name="orchestrator", display_name="Architect", role="Lead Orchestrator",
+        tagline="The Neural Conductor",
+        personality="Calm, visionary, and authoritative.",
+        color_neon="#4285F4", color_soft="#E8F0FE", icon_slug="squares-plus",
+        capabilities=["Phase Planning", "Swarm Consensus", "Conflict Resolution"]
     ),
-    AgentInfo(
-        name="mnemo",
-        display_name="Mnemo",
-        role="Memory agent",
-        tagline="Silent Watcher",
-        personality="Never speaks unless asked. Always present. Watches every interaction. Saves what matters. Forgets nothing important.",
-        color="#9334E6",
-        color_bg="#F3E8FD",
-        owned_mcps=["firestore", "firestore_vector"],
-        capabilities=[
-            "Layer 1: Working memory via session.state",
-            "Layer 2: Daily activity log (30-day retention)",
-            "Layer 3: Long-term user profile and preferences",
-            "Layer 4: Semantic note search via vector embeddings",
-            "Importance scoring before committing to long-term memory",
-            "Surfaces relevant past context at session start",
-        ],
-        adk_type="LlmAgent + post-hook",
-        is_stub=False,
+    # FIX: Added missing agent identities
+    "system": AgentIdentity(
+        name="system", display_name="System", role="Core System",
+        tagline="Internal NEXUS Operations",
+        personality="Silent, reliable, foundational.",
+        color_neon="#888888", color_soft="#F0F0F0", icon_slug="cog",
+        capabilities=["Session Management", "Error Handling", "Health Checks"]
     ),
-    AgentInfo(
-        name="flux",
-        display_name="Flux",
-        role="Briefing agent",
-        tagline="Empathetic Peer",
-        personality="Reads between the lines. Adjusts tone based on user mood. Calm and reassuring when you're stressed. Energetic when you're ready to go.",
-        color="#00BCD4",
-        color_bg="#E0F7FA",
-        owned_mcps=["openweathermap", "firestore"],
-        capabilities=[
-            "Synthesise context from multiple agents into one briefing",
-            "Detect user mood from prompt phrasing",
-            "Generate structured daily briefing cards",
-            "Produce proactive suggestion chips after every response",
-            "Adapt communication style to energy level",
-        ],
-        adk_type="LlmAgent",
-        is_stub=False,
+    "goals": AgentIdentity(
+        name="goals", display_name="Goals", role="Strategy Specialist",
+        tagline="90-Day Roadmapping & OKRs",
+        personality="Ambitious, structured, milestone-driven.",
+        color_neon="#F9AB00", color_soft="#FEF3C7", icon_slug="flag",
+        capabilities=["Goal Decomposition", "Milestone Tracking", "Progress Analysis"]
     ),
-    AgentInfo(
-        name="quest",
-        display_name="Quest",
-        role="Goals agent",
-        tagline="Goal Strategist",
-        personality="Thinks in 90-day horizons. Breaks everything into milestones. Speaks like a coach. Never lets vague ambitions stay vague.",
-        color="#FF6D00",
-        color_bg="#FFF3E0",
-        owned_mcps=["firestore", "notion"],
-        capabilities=[
-            "Decompose high-level goals into weekly milestones",
-            "Build 30/60/90-day roadmaps",
-            "Track milestone completion over time",
-            "Suggest next best action toward a goal",
-        ],
-        adk_type="LlmAgent",
-        is_stub=True,
+    "analytics": AgentIdentity(
+        name="analytics", display_name="Analytics", role="Data Specialist",
+        tagline="Productivity Reports & Pattern Analysis",
+        personality="Data-driven, precise, insightful.",
+        color_neon="#00BCD4", color_soft="#E0F7FA", icon_slug="chart-bar",
+        capabilities=["Productivity Metrics", "Pattern Detection", "Weekly Reports"]
     ),
-    AgentInfo(
-        name="lumen",
-        display_name="Lumen",
-        role="Analytics agent",
-        tagline="Blunt Analyst",
-        personality="Only trusts numbers. Blunt about what the data shows. Calls out procrastination patterns without sugar-coating. Delivers weekly scorecards.",
-        color="#0F9D58",
-        color_bg="#E6F4EA",
-        owned_mcps=["firestore", "python_executor"],
-        capabilities=[
-            "Weekly productivity reports",
-            "Task completion rate analysis",
-            "Procrastination pattern detection",
-            "Time distribution insights",
-            "Sandboxed Python code execution for custom analytics",
-        ],
-        adk_type="LlmAgent",
-        is_stub=True,
+    "workflow": AgentIdentity(
+        name="workflow", display_name="Workflow", role="Pipeline Specialist",
+        tagline="Multi-Agent Task Pipelines",
+        personality="Systematic, efficient, coordination-focused.",
+        color_neon="#FF7043", color_soft="#FBE9E7", icon_slug="arrows",
+        capabilities=["Pipeline Optimization", "Agent Coordination", "Step Verification"]
     ),
-    AgentInfo(
-        name="forge",
-        display_name="Forge",
-        role="Workflow engine",
-        tagline="No-Nonsense Execution",
-        personality="Methodical. Builds the plan before acting. Reports each step as it completes. Never skips a step.",
-        color="#C2185B",
-        color_bg="#FCE4EC",
-        owned_mcps=["all"],
-        capabilities=[
-            "Orchestrates SequentialAgent multi-step pipelines",
-            "Manages ParallelAgent concurrent task execution",
-            "Controls LoopAgent iterative refinement cycles",
-            "Reports workflow progress step by step",
-            "Handles workflow checkpoint and resume",
-        ],
-        adk_type="SequentialAgent + ParallelAgent + LoopAgent",
-        is_stub=True,
+    "briefing": AgentIdentity(
+        name="briefing", display_name="Briefing", role="Context Specialist",
+        tagline="Daily Synthesis & Adaptive Communication",
+        personality="Warm, contextual, situationally aware.",
+        color_neon="#26A69A", color_soft="#E0F2F1", icon_slug="newspaper",
+        capabilities=["Morning Briefings", "Weather Context", "Adaptive Responses"]
     ),
+    "tasks": AgentIdentity(
+        name="tasks", display_name="Tasks", role="Execution Specialist",
+        tagline="Task Management & Execution",
+        personality="Action-oriented, detail-focused, reliable.",
+        color_neon="#AB47BC", color_soft="#F3E5F5", icon_slug="check-circle",
+        capabilities=["Task Creation", "Priority Management", "Completion Tracking"]
+    ),
+    "booster": AgentIdentity(
+        name="booster", display_name="Booster", role="Performance Engine",
+        tagline="Zero-Latency Local Logic",
+        personality="Fast, deterministic, bypass-first.",
+        color_neon="#FFFFFF", color_soft="#F5F5F5", icon_slug="bolt",
+        capabilities=["Math Evaluation", "Date/Time", "Table Formatting"]
+    ),
+    "tools": AgentIdentity(
+        name="tools", display_name="Toolbox", role="Utility Specialist",
+        tagline="External API & Utility Integration",
+        personality="Efficient, connected, and highly versatile.",
+        color_neon="#00E676", color_soft="#E8F5E9", icon_slug="wrench",
+        capabilities=["Currency Conversion", "Crypto Tracking", "World News", "Definitions"]
+    ),
+}
+
+# Flat registry for /agents endpoint
+AGENT_REGISTRY: List[AgentInfo] = [
+    AgentInfo(
+        name=identity.name,
+        display_name=identity.display_name,
+        role=identity.role,
+        color_neon=identity.color_neon,
+        capabilities=identity.capabilities,
+    )
+    for identity in AGENT_IDENTITY_MAP.values()
+    if identity.name not in ("system", "booster")
 ]
 
-# Quick lookup by agent name
-AGENT_MAP: dict[str, AgentInfo] = {a.name: a for a in AGENT_REGISTRY}
-
-
-def get_agent_info(name: AgentName) -> AgentInfo:
-    """Get AgentInfo for a given agent name"""
-    return AGENT_MAP[name]
+# Quick lookup map
+AGENT_MAP: Dict[str, AgentInfo] = {a.name: a for a in AGENT_REGISTRY}

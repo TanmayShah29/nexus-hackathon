@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+tmp_venv/
+.venv/
+env/
+ENV/
+
+# Secrets — NEVER include in image
+.env
+*.env
+*.key
+*.pem
+serviceAccountKey.json
+firebase-credentials.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Tests (not needed in production image)
+tests/
+*.test.py
+pytest.ini
+.pytest_cache/
+
+# Docs / dev tools
+*.md
+Makefile

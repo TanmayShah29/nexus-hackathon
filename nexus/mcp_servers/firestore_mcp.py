@@ -1,90 +1,119 @@
 """
-firestore_mcp.py — Firestore MCP (CRUD operations)
+firestore_mcp.py — Firestore MCP (In-memory operations)
+Connected to NEXUS Multi-Layer Memory
 """
 
-import os
-from typing import Any
-from datetime import datetime
+from typing import Any, Optional
+from nexus.config import get_demo_mode
 
-
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+DEMO_MODE = get_demo_mode()
 
 
 class FirestoreMCP:
     """
-    Firestore CRUD operations.
+    Firestore-like CRUD operations using in-memory storage.
     """
 
-    def __init__(self, demo_mode: bool = DEMO_MODE):
+    def __init__(self, demo_mode: bool = DEMO_MODE, user_id: str = "default"):
         self.demo_mode = demo_mode or DEMO_MODE
-        self._data: dict[str, dict[str, Any]] = {}
+        self.user_id = user_id
+        self._notes = {}
+        self._tasks = {}
+
+    async def write_document(
+        self, collection: str, document_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Write a document (Unified helper for Notes and Tasks)."""
+        user_id = data.get("user_id", self.user_id)
+
+        if collection == "notes":
+            self._notes[document_id] = {
+                "id": document_id,
+                "content": data.get("content", ""),
+                "tags": data.get("tags", []),
+                "metadata": data,
+                "user_id": user_id,
+            }
+        elif collection == "tasks":
+            self._tasks[document_id] = {
+                "id": document_id,
+                "title": data.get("title", "New Task"),
+                "description": data.get("description", ""),
+                "priority": data.get("priority", "medium"),
+                "due_date": data.get("due_date"),
+                "status": data.get("status", "pending"),
+                "user_id": user_id,
+            }
+
+        return {
+            "collection": collection,
+            "document_id": document_id,
+            "status": "success",
+            "storage_layer": "semantic" if collection == "notes" else "relational",
+        }
 
     async def create(
         self, collection: str, document_id: str, data: dict[str, Any]
     ) -> dict[str, Any]:
         """Create a document."""
-        if self.demo_mode:
-            key = f"{collection}/{document_id}"
-            self._data[key] = data
-            return {
-                "collection": collection,
-                "document_id": document_id,
-                "status": "created",
-            }
-
-        raise NotImplementedError("Real Firestore not implemented")
+        return await self.write_document(collection, document_id, data)
 
     async def read(self, collection: str, document_id: str) -> dict[str, Any]:
         """Read a document."""
-        if self.demo_mode:
-            key = f"{collection}/{document_id}"
-            return self._data.get(key, {"error": "Not found"})
+        if collection == "notes":
+            note = self._notes.get(document_id)
+            if note:
+                return {"content": note["content"], **note.get("metadata", {})}
+        elif collection == "tasks":
+            task = self._tasks.get(document_id)
+            if task and task.get("user_id") == self.user_id:
+                return task
 
-        raise NotImplementedError("Real Firestore not implemented")
+        return {"error": "Not found or collection not supported for direct read"}
 
     async def update(
         self, collection: str, document_id: str, data: dict[str, Any]
     ) -> dict[str, Any]:
         """Update a document."""
-        if self.demo_mode:
-            key = f"{collection}/{document_id}"
-            if key in self._data:
-                self._data[key].update(data)
-                return {
-                    "collection": collection,
-                    "document_id": document_id,
-                    "status": "updated",
-                }
-            return {"error": "Document not found"}
-
-        raise NotImplementedError("Real Firestore not implemented")
+        if collection == "tasks":
+            if document_id in self._tasks:
+                self._tasks[document_id].update(data)
+            return {"status": "updated"}
+        return {"error": "Update only supported for tasks in this MCP"}
 
     async def delete(self, collection: str, document_id: str) -> dict[str, Any]:
         """Delete a document."""
-        if self.demo_mode:
-            key = f"{collection}/{document_id}"
-            if key in self._data:
-                del self._data[key]
-                return {
-                    "collection": collection,
-                    "document_id": document_id,
-                    "status": "deleted",
-                }
-            return {"error": "Not found"}
-
-        raise NotImplementedError("Real Firestore not implemented")
+        if collection == "tasks":
+            if document_id in self._tasks:
+                del self._tasks[document_id]
+            return {"status": "deleted"}
+        return {"error": "Delete only supported for tasks in this MCP"}
 
     async def query(
-        self, collection: str, field: str, operator: str, value: Any
+        self, collection: str, field: str, operator: str, value: Optional[Any] = None
     ) -> list[dict[str, Any]]:
         """Query documents."""
-        if self.demo_mode:
+        if collection == "notes":
             results = []
-            prefix = f"{collection}/"
-            for key, doc in self._data.items():
-                if key.startswith(prefix) and field in doc:
-                    if operator == "==" and doc[field] == value:
-                        results.append({"document_id": key.replace(prefix, ""), **doc})
+            query_value = value if value is not None else operator
+            for note in self._notes.values():
+                if query_value.lower() in note.get("content", "").lower():
+                    results.append(
+                        {
+                            "document_id": note["id"],
+                            "content": note["content"],
+                            **note.get("metadata", {}),
+                        }
+                    )
             return results
 
-        raise NotImplementedError("Real Firestore not implemented")
+        elif collection == "tasks":
+            status_filter = value if field == "status" else None
+            tasks = [
+                t for t in self._tasks.values() if t.get("user_id") == self.user_id
+            ]
+            if status_filter:
+                tasks = [t for t in tasks if t.get("status") == status_filter]
+            return tasks
+
+        return []

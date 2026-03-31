@@ -1,908 +1,534 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS — Intelligent Multi-Agent Productivity OS</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;700&family=Google+Sans+Display:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS OS | Multi-Agent Productivity</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode:"class",
+  theme:{extend:{
+    colors:{"surface":"#131313","on-surface":"#e5e2e1","on-surface-variant":"#c6c6c6","secondary":"#ddb7ff","tertiary":"#71f8e4","background":"#0B0B0B","surface-container":"#201f1f","outline-variant":"#474747"},
+    fontFamily:{"headline":["Plus Jakarta Sans"],"body":["Plus Jakarta Sans"]},
+    borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"9999px"}
+  }}
+}
+</script>
 <style>
-/* ─── RESET ─────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;font-size:16px}
-body{
-  font-family:'Google Sans','Segoe UI',system-ui,sans-serif;
-  background:#fff;
-  color:#1f1f1f;
-  overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;
-}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#0B0B0B;background-image:radial-gradient(circle at 1px 1px,#FFFFFF10 1px,transparent 0);background-size:40px 40px;color:#e5e2e1;font-family:"Plus Jakarta Sans",sans-serif;overflow-x:hidden}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 200,'GRAD' 0,'opsz' 24}
 
-/* ─── CSS VARIABLES ─────────────────────────────────── */
-:root{
-  --blue:#1a73e8;   --blue-bg:#e8f0fe;
-  --red:#ea4335;    --red-bg:#fce8e6;
-  --green:#34a853;  --green-bg:#e6f4ea;
-  --yellow:#fbbc04; --yellow-bg:#fef7e0;
-  --purple:#9334e6; --purple-bg:#f3e8fd;
-  --cyan:#00bcd4;   --cyan-bg:#e0f7fa;
-  --orange:#ff6d00; --orange-bg:#fff3e0;
-  --teal:#0f9d58;   --teal-bg:#e8f5e9;
-  --pink:#c2185b;   --pink-bg:#fce4ec;
-
-  --surface:#f8f9fa;
-  --border:#e8eaed;
-  --border-dark:#dadce0;
-  --text-1:#1f1f1f;
-  --text-2:#444746;
-  --text-3:#5f6368;
-  --text-4:#9aa0a6;
-
-  --ease-out-quint:cubic-bezier(0.22,1,0.36,1);
-  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
-  --ease-google:cubic-bezier(0.4,0,0.2,1);
-}
-
-/* ─── TOP NAV ───────────────────────────────────────── */
-.nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;
-  height:60px;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 40px;
-  background:rgba(255,255,255,0.9);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-logo svg{flex-shrink:0}
-.nav-wordmark{font-size:20px;font-weight:700;letter-spacing:-0.5px;color:var(--text-1)}
-.nav-badge{
-  font-size:11px;font-weight:600;letter-spacing:0.5px;
-  padding:3px 10px;border-radius:20px;
-  background:var(--blue-bg);color:var(--blue);
-}
-.nav-right{display:flex;align-items:center;gap:12px}
-.nav-tag{font-size:13px;color:var(--text-4);padding:6px 14px;border-radius:20px;border:1px solid var(--border)}
-.nav-cta{
-  font-size:14px;font-weight:500;
-  padding:8px 20px;border-radius:20px;border:none;
-  background:var(--blue);color:#fff;cursor:pointer;
-  transition:background 150ms var(--ease-google),transform 150ms var(--ease-google);
-}
-.nav-cta:hover{background:#1557b0;transform:translateY(-1px)}
-
-/* ─── HERO ──────────────────────────────────────────── */
-.hero{
-  min-height:100vh;
-  padding:120px 64px 80px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:80px;
-  align-items:center;
-  max-width:1400px;
-  margin:0 auto;
-}
-
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--blue);margin-bottom:20px;
-}
-.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
-
-.hero-title{
-  font-family:'Google Sans Display','Google Sans',sans-serif;
-  font-size:58px;font-weight:700;line-height:1.1;
-  letter-spacing:-1.5px;
-  color:var(--text-1);
-  margin-bottom:24px;
-}
-.hero-title em{font-style:normal;color:var(--blue)}
-
-.hero-sub{
-  font-size:18px;font-weight:400;line-height:1.65;
-  color:var(--text-3);max-width:480px;margin-bottom:40px;
-}
-
-.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:48px}
-
-.btn-primary{
-  display:inline-flex;align-items:center;gap:8px;
-  font-family:inherit;font-size:15px;font-weight:600;
-  padding:13px 28px;border-radius:24px;border:none;
-  background:var(--blue);color:#fff;cursor:pointer;
-  transition:all 200ms var(--ease-google);
-  box-shadow:0 1px 3px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.08);
-}
-.btn-primary:hover{background:#1557b0;box-shadow:0 4px 12px rgba(26,115,232,0.35);transform:translateY(-2px)}
-
-.btn-outline{
-  display:inline-flex;align-items:center;gap:8px;
-  font-family:inherit;font-size:15px;font-weight:600;
-  padding:12px 26px;border-radius:24px;
-  border:1.5px solid var(--blue);color:var(--blue);
-  background:transparent;cursor:pointer;
-  transition:all 200ms var(--ease-google);
-}
-.btn-outline:hover{background:var(--blue-bg);transform:translateY(-2px)}
-
-/* Tech pill row */
-.tech-pills{display:flex;flex-wrap:wrap;gap:8px}
-.tech-pill{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:600;letter-spacing:0.3px;
-  padding:5px 12px;border-radius:20px;
-  background:var(--surface);border:1px solid var(--border-dark);
-  color:var(--text-3);
-}
-.tech-pill-dot{width:6px;height:6px;border-radius:50%}
-
-/* ─── HERO RIGHT — NEXUS CORE CARD ─────────────────── */
-.hero-visual{
-  position:relative;
-  animation:fadeSlideRight 0.8s var(--ease-out-quint) 0.2s both;
-}
-
-.nexus-card{
-  background:#fff;
-  border-radius:28px;
-  box-shadow:0 8px 40px rgba(0,0,0,0.1),0 2px 8px rgba(0,0,0,0.06);
-  overflow:hidden;
-  border:1px solid var(--border);
-  cursor:pointer;
-  transition:transform 300ms var(--ease-out-quint),box-shadow 300ms var(--ease-google);
-}
-.nexus-card:hover{
-  transform:translateY(-8px);
-  box-shadow:0 20px 60px rgba(26,115,232,0.15),0 4px 16px rgba(0,0,0,0.08);
-}
-
-.nexus-card-img{
-  background:linear-gradient(160deg,var(--blue-bg) 0%,#c5d9fb 100%);
-  height:320px;
-  display:flex;align-items:flex-end;justify-content:center;
-  overflow:hidden;padding-top:24px;
-}
-.nexus-card-img img{
-  height:290px;width:auto;object-fit:contain;
-  filter:drop-shadow(0 8px 24px rgba(26,115,232,0.25));
-  animation:float 5s ease-in-out infinite;
-}
-.nexus-card-img .img-placeholder{
-  width:120px;height:120px;border-radius:50%;
-  background:var(--blue);
+/* ── Story layout ── */
+#story{position:relative;display:flex;flex-direction:row}
+#nexus-svg-wrap{
+  position:sticky;top:0;height:100vh;width:50vw;
   display:flex;align-items:center;justify-content:center;
-  font-size:52px;margin-bottom:32px;
+  pointer-events:all;float:left
+}
+.story-text-col{margin-left:50vw;width:50vw;padding:0 8vw 0 4vw}
+.story-beat{
+  min-height:85vh;display:flex;flex-direction:column;justify-content:center;
+  padding:5rem 0;opacity:.15;transform:translateY(20px);
+  transition:opacity .6s ease,transform .6s ease
 }
 
-.nexus-card-body{padding:24px 28px 28px}
-.nexus-card-eyebrow{
-  font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--blue);margin-bottom:6px;
+@media (max-width: 900px) {
+  #story{flex-direction:column}
+  #nexus-svg-wrap{
+    width:100vw;height:40vh;float:none;position:sticky;top:64px;
+    background:rgba(11,11,11,.8);backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,.05);z-index:20
+  }
+  .story-text-col{width:100vw;margin-left:0;padding:2rem 1.5rem}
+  .story-beat{min-height:auto;padding:4rem 0;opacity:1 !important;transform:none !important}
 }
-.nexus-card-name{font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
-.nexus-card-role{font-size:14px;color:var(--text-3);margin-bottom:12px;font-style:italic}
-.nexus-card-desc{
-  font-size:14px;line-height:1.6;color:var(--text-2);
-  padding-left:12px;border-left:3px solid var(--blue);
-}
+.story-beat.active{opacity:1;transform:translateY(0)}
+.beat-tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.75rem;font-weight:600}
+.beat-headline{font-size:clamp(1.8rem,3.2vw,3rem);font-weight:800;line-height:1.06;letter-spacing:-.03em;margin-bottom:1rem}
+.beat-body{font-size:.92rem;line-height:1.85;color:rgba(255,255,255,.48);max-width:460px}
+.beat-pills{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem}
+.pill{font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);border-radius:2px}
+.pill.lit{border-color:currentColor;color:inherit}
 
-/* floating chip decorations */
-.nexus-float-chips{
-  position:absolute;top:24px;right:-20px;
-  display:flex;flex-direction:column;gap:10px;
+/* ── D3 node styles ── */
+.n-group{cursor:pointer}
+.n-group:hover .n-core{filter:brightness(1.25)}
+.n-ring-outer{fill:none;stroke-width:.8}
+.n-ring-inner{fill:none;stroke-width:.6}
+.n-core{transition:filter .2s}
+/* Opal shimmer — CSS animation on the inner highlight */
+.n-opal{
+  fill:rgba(255,255,255,.18);
+  animation:opal-shift 4s ease-in-out infinite alternate;
+  transform-origin:center
 }
-.float-chip{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:8px 14px;
-  display:flex;align-items:center;gap:8px;
-  font-size:12px;font-weight:600;color:var(--text-2);
-  box-shadow:0 2px 12px rgba(0,0,0,0.08);
-  white-space:nowrap;
-  animation:floatChip 4s ease-in-out infinite;
+@keyframes opal-shift{
+  0%{opacity:.12;rx:40%}
+  50%{opacity:.28;rx:55%}
+  100%{opacity:.1;rx:35%}
 }
-.float-chip:nth-child(2){animation-delay:1s}
-.float-chip:nth-child(3){animation-delay:2s}
-.float-chip-dot{width:8px;height:8px;border-radius:50%}
+.n-label{
+  font-family:"Plus Jakarta Sans",sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;fill:#e5e2e1;text-anchor:middle;
+  pointer-events:none
+}
+.n-sub{
+  font-family:"Plus Jakarta Sans",sans-serif;font-size:9px;
+  fill:rgba(229,226,225,.4);text-anchor:middle;pointer-events:none
+}
+.edge-path{fill:none;stroke-width:1.4;stroke-dasharray:5 5;transition:opacity .5s,stroke .5s}
+.pulse-ball{pointer-events:none}
 
-/* ─── SECTION HEADER ────────────────────────────────── */
-.section-wrap{padding:80px 64px;background:var(--surface);border-top:1px solid var(--border)}
-.section-head{text-align:center;max-width:560px;margin:0 auto 56px}
-.section-label{
-  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--blue);margin-bottom:12px;
-}
-.section-title{
-  font-family:'Google Sans Display','Google Sans',sans-serif;
-  font-size:40px;font-weight:700;letter-spacing:-1px;
-  color:var(--text-1);margin-bottom:14px;
-}
-.section-sub{font-size:17px;color:var(--text-3);line-height:1.6}
+/* ── Bento ── */
+.bento-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;max-width:1200px;margin:0 auto}
+.bento-card{background:rgba(20,20,20,.5);border:1px solid rgba(255,255,255,.07);padding:2.5rem;overflow:hidden;position:relative;transition:border-color .3s}
+.bento-card:hover{border-color:rgba(255,255,255,.18)}
 
-/* ─── AGENT ROSTER (Horizontal) ─────────────────────── */
-.roster-outer{position:relative;overflow:hidden}
-.roster-track{
-  display:flex;gap:20px;
-  overflow-x:auto;
-  padding:8px 64px 24px;
-  scroll-snap-type:x mandatory;
-  cursor:grab;
-  scrollbar-width:thin;
-  scrollbar-color:var(--border-dark) transparent;
-}
-.roster-track::-webkit-scrollbar{height:5px}
-.roster-track::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:3px}
-.roster-track:active{cursor:grabbing}
+/* ── CTA ── */
+.cta-section{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem}
 
-/* fade edges */
-.roster-outer::before,.roster-outer::after{
-  content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none;
-}
-.roster-outer::before{left:0;background:linear-gradient(to right,var(--surface),transparent)}
-.roster-outer::after{right:0;background:linear-gradient(to left,var(--surface),transparent)}
+nav a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
 
-/* ─── AGENT CARD (roster) ───────────────────────────── */
-.agent-card{
-  flex:0 0 260px;
-  scroll-snap-align:start;
-  background:#fff;
-  border-radius:20px;
-  border:1px solid var(--border);
-  overflow:hidden;
-  cursor:pointer;
-  transition:transform 300ms var(--ease-out-quint),box-shadow 300ms var(--ease-google),border-color 200ms;
-  position:relative;
-}
-.agent-card::before{
-  content:'';
-  position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--agent-color,var(--blue));
-  transform:scaleX(0);transform-origin:left;
-  transition:transform 300ms var(--ease-out-quint);
-}
-.agent-card:hover::before{transform:scaleX(1)}
-.agent-card:hover{
-  transform:translateY(-8px);
-  box-shadow:0 16px 48px rgba(0,0,0,0.12);
-  border-color:var(--agent-color,var(--blue));
-}
-
-.agent-card-img{
-  height:180px;
-  display:flex;align-items:flex-end;justify-content:center;
-  background:var(--agent-bg,var(--blue-bg));
-  overflow:hidden;padding-top:16px;
-  transition:background 300ms;
-}
-.agent-card-img img{
-  height:160px;width:auto;object-fit:contain;
-  transition:transform 300ms var(--ease-out-quint);
-}
-.agent-card:hover .agent-card-img img{transform:scale(1.08) translateY(-4px)}
-.agent-card-img .img-fallback{
-  width:72px;height:72px;border-radius:50%;
-  background:var(--agent-color,var(--blue));
-  display:flex;align-items:center;justify-content:center;
-  font-size:32px;margin-bottom:20px;
-}
-
-.agent-card-body{padding:16px 18px 20px}
-.agent-card-name{
-  font-size:18px;font-weight:700;letter-spacing:-0.3px;
-  color:var(--agent-color,var(--text-1));margin-bottom:2px;
-}
-.agent-card-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-4);margin-bottom:6px}
-.agent-card-tagline{font-size:13px;color:var(--text-3);font-style:italic;margin-bottom:10px}
-.agent-card-tools{display:flex;flex-wrap:wrap;gap:5px}
-.tool-chip{
-  font-size:10px;font-weight:600;
-  padding:3px 8px;border-radius:12px;
-  background:var(--surface);border:1px solid var(--border-dark);
-  color:var(--text-3);
-}
-.tool-chip.more{background:var(--agent-color,var(--blue));color:#fff;border-color:transparent}
-
-/* ─── AGENT INTRO MODAL ─────────────────────────────── */
-.modal-backdrop{
-  position:fixed;inset:0;z-index:200;
-  background:rgba(32,33,36,0.7);
-  backdrop-filter:blur(8px);
-  display:grid;place-items:center;
-  padding:24px;
-  opacity:0;pointer-events:none;
-  transition:opacity 350ms var(--ease-google);
-}
-.modal-backdrop.open{opacity:1;pointer-events:all}
-
-.modal{
-  background:#fff;
-  border-radius:28px;
-  width:100%;max-width:900px;
-  max-height:90vh;
-  overflow:hidden;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  box-shadow:0 24px 80px rgba(0,0,0,0.3);
-  transform:scale(0.92) translateY(20px);
-  transition:transform 400ms var(--ease-spring);
-  position:relative;
-}
-.modal-backdrop.open .modal{transform:scale(1) translateY(0)}
-
-/* LEFT — character + dot navigation */
-.modal-left{
-  background:var(--agent-bg,var(--blue-bg));
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-end;
-  position:relative;overflow:hidden;
-  padding:0 0 32px;
-}
-
-/* dot nav — vertical pill on far left */
-.modal-dot-nav{
-  position:absolute;left:16px;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:8px;align-items:center;
-  background:rgba(255,255,255,0.6);
-  border:1px solid rgba(255,255,255,0.8);
-  border-radius:20px;padding:12px 8px;
-  backdrop-filter:blur(8px);
-}
-.modal-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:rgba(0,0,0,0.2);cursor:pointer;
-  transition:all 200ms var(--ease-google);
-}
-.modal-dot.active{
-  height:24px;border-radius:6px;
-  background:var(--agent-color,var(--blue));
-  box-shadow:0 2px 8px rgba(0,0,0,0.2);
-}
-.modal-dot:hover:not(.active){background:rgba(0,0,0,0.4)}
-
-.modal-agent-img{
-  width:100%;max-width:260px;
-  height:340px;
-  object-fit:contain;object-position:bottom;
-  filter:drop-shadow(0 8px 32px rgba(0,0,0,0.15));
-  animation:modalImgIn 500ms var(--ease-spring) both;
-}
-.modal-agent-img-placeholder{
-  width:140px;height:140px;border-radius:50%;
-  background:var(--agent-color,var(--blue));
-  display:flex;align-items:center;justify-content:center;
-  font-size:60px;margin-bottom:40px;
-  animation:modalImgIn 500ms var(--ease-spring) both;
-}
-
-@keyframes modalImgIn{
-  from{opacity:0;transform:translateY(40px) scale(0.9)}
-  to{opacity:1;transform:translateY(0) scale(1)}
-}
-
-/* nav arrows on modal left */
-.modal-nav{
-  position:absolute;bottom:28px;right:20px;
-  display:flex;gap:8px;
-}
-.modal-nav-btn{
-  width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
-  background:rgba(255,255,255,0.8);backdrop-filter:blur(8px);
-  color:var(--text-1);font-size:18px;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 150ms var(--ease-google);
-  box-shadow:0 2px 8px rgba(0,0,0,0.12);
-}
-.modal-nav-btn:hover{background:#fff;transform:scale(1.1)}
-
-/* RIGHT — info panel */
-.modal-right{
-  padding:48px 40px 40px;
-  display:flex;flex-direction:column;
-  overflow-y:auto;
-}
-.modal-close{
-  position:absolute;top:20px;right:20px;z-index:10;
-  width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
-  background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);
-  font-size:20px;color:var(--text-3);
-  display:flex;align-items:center;justify-content:center;
-  transition:all 150ms var(--ease-google);
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-.modal-close:hover{background:#fff;color:var(--text-1);transform:rotate(90deg)}
-
-.modal-agent-eyebrow{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--agent-color,var(--blue));margin-bottom:10px}
-.modal-agent-name{
-  font-family:'Google Sans Display','Google Sans',sans-serif;
-  font-size:36px;font-weight:700;letter-spacing:-1px;
-  color:var(--text-1);margin-bottom:4px;
-}
-.modal-agent-tagline{font-size:16px;color:var(--text-3);font-style:italic;margin-bottom:20px}
-.modal-agent-personality{
-  font-size:14px;line-height:1.7;color:var(--text-2);
-  background:var(--surface);border-radius:12px;padding:14px 16px;
-  border-left:3px solid var(--agent-color,var(--blue));
-  margin-bottom:24px;
-}
-
-.modal-section-label{
-  font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;
-  color:var(--text-4);margin-bottom:10px;
-}
-
-.modal-tools{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:24px}
-.modal-tool-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:600;
-  padding:6px 12px;border-radius:20px;
-  background:var(--agent-bg,var(--blue-bg));
-  color:var(--agent-color,var(--blue));
-  border:1px solid rgba(0,0,0,0.06);
-}
-.modal-tool-dot{width:5px;height:5px;border-radius:50%;background:var(--agent-color,var(--blue))}
-
-.modal-caps{list-style:none;margin-bottom:32px}
-.modal-cap{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:10px 0;border-bottom:1px solid var(--border);
-  font-size:14px;color:var(--text-2);line-height:1.5;
-}
-.modal-cap:last-child{border-bottom:none}
-.modal-cap::before{
-  content:'';width:7px;height:7px;border-radius:50%;
-  background:var(--agent-color,var(--blue));
-  flex-shrink:0;margin-top:6px;
-}
-
-.modal-cta{
-  display:block;width:100%;
-  font-family:inherit;font-size:15px;font-weight:600;
-  padding:14px;border-radius:20px;border:none;cursor:pointer;
-  background:var(--agent-color,var(--blue));color:#fff;
-  transition:all 200ms var(--ease-google);
-  box-shadow:0 2px 8px rgba(0,0,0,0.12);
-  text-align:center;text-decoration:none;
-}
-.modal-cta:hover{filter:brightness(0.9);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15)}
-
-/* ─── FOOTER ────────────────────────────────────────── */
-.footer{
-  padding:32px 64px;text-align:center;
-  border-top:1px solid var(--border);
-  font-size:13px;color:var(--text-4);
-}
-
-/* ─── ANIMATIONS ────────────────────────────────────── */
-@keyframes fadeSlideUp{
-  from{opacity:0;transform:translateY(32px)}
-  to{opacity:1;transform:translateY(0)}
-}
-@keyframes fadeSlideRight{
-  from{opacity:0;transform:translateX(40px)}
-  to{opacity:1;transform:translateX(0)}
-}
-@keyframes float{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-12px)}
-}
-@keyframes floatChip{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-6px)}
-}
-
-.anim-in{
-  opacity:0;animation:fadeSlideUp 700ms var(--ease-out-quint) both;
-}
-.anim-in:nth-child(2){animation-delay:0.1s}
-.anim-in:nth-child(3){animation-delay:0.2s}
-.anim-in:nth-child(4){animation-delay:0.3s}
-
-/* ─── RESPONSIVE ────────────────────────────────────── */
-@media(max-width:1024px){
-  .hero{grid-template-columns:1fr;gap:48px;padding:100px 40px 60px;text-align:center}
-  .hero-sub{margin:0 auto 32px}
-  .hero-actions{justify-content:center}
-  .tech-pills{justify-content:center}
-  .nexus-float-chips{display:none}
-}
-@media(max-width:768px){
-  .hero-title{font-size:40px}
-  .section-wrap{padding:60px 24px}
-  .roster-track{padding:8px 24px 20px}
-  .modal{grid-template-columns:1fr;max-height:95vh}
-  .modal-left{height:260px}
-  .modal-agent-img{height:220px}
-  .modal-right{padding:28px 24px}
-  .nav{padding:0 20px}
-}
+/* clear story float */
+#story::after{content:"";display:table;clear:both}
 </style>
+<script src="nexus-core.js" defer></script>
 </head>
 <body>
 
-<!-- ── TOP NAV ────────────────────────────────────────── -->
-<nav class="nav">
-  <div class="nav-logo">
-    <svg width="28" height="28" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="12" fill="#4285F4"/>
-      <circle cx="14" cy="8"  r="3.5" fill="white"/>
-      <circle cx="8.5" cy="17.5" r="2.8" fill="white"/>
-      <circle cx="19.5" cy="17.5" r="2.8" fill="white"/>
-    </svg>
-    <span class="nav-wordmark">NEXUS</span>
-    <span class="nav-badge">Beta</span>
+<!-- ── Nav ─────────────────────────────────────────────── -->
+<nav class="fixed top-0 w-full z-50 bg-[#0B0B0B]/50 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-4 md:px-8 h-16">
+  <div class="flex items-center gap-4">
+    <button onclick="toggleMobileMenu()" class="md:hidden text-white/50 hover:text-white">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <div class="text-lg font-extrabold tracking-tighter text-white uppercase font-headline">NEXUS OS</div>
   </div>
-  <div class="nav-right">
-    <span class="nav-tag">Google ADK · Gemini · MCP</span>
-    <button class="nav-cta" onclick="window.location.href='app.html'">Open session →</button>
+  <div class="hidden md:flex gap-8 items-center">
+    <a class="text-white/50 hover:text-white transition-colors" href="/">Home</a>
+    <a class="text-white/50 hover:text-white transition-colors" href="/studio">Studio</a>
+    <a class="text-white/50 hover:text-white transition-colors" href="/memory">Memory</a>
+    <a class="text-white/50 hover:text-white transition-colors" href="/mcp">Tools</a>
   </div>
+  <button onclick="location.href='/studio'" class="bg-white text-black px-4 md:px-6 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white/90 active:scale-95 transition-all">Initialize</button>
 </nav>
 
-<!-- ── HERO ───────────────────────────────────────────── -->
-<section class="hero">
-
-  <div class="hero-content">
-    <div class="hero-eyebrow anim-in">
-      <span class="hero-eyebrow-dot"></span>
-      Google Cloud Gen AI Academy · APAC 2025
-    </div>
-    <h1 class="hero-title anim-in" style="animation-delay:0.1s">
-      Your cognitive workload,<br>
-      managed by <em>a team</em><br>
-      of AI agents.
-    </h1>
-    <p class="hero-sub anim-in" style="animation-delay:0.2s">
-      NEXUS coordinates 9 specialist agents that research, schedule,
-      remember, and act — transparently, step by step, on your behalf.
-    </p>
-    <div class="hero-actions anim-in" style="animation-delay:0.3s">
-      <button class="btn-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">
-        Meet the team
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a7 7 0 100 14A7 7 0 0010 3zm1 9.5l-3-3 1.4-1.4 1.6 1.6 3.6-3.6 1.4 1.4-5 5z"/></svg>
-      </button>
-      <button class="btn-outline" onclick="window.location.href='app.html'">
-        Start session →
-      </button>
-    </div>
-    <div class="tech-pills anim-in" style="animation-delay:0.4s">
-      <span class="tech-pill"><span class="tech-pill-dot" style="background:#4285F4"></span>Google ADK</span>
-      <span class="tech-pill"><span class="tech-pill-dot" style="background:#EA4335"></span>Gemini 1.5 Flash</span>
-      <span class="tech-pill"><span class="tech-pill-dot" style="background:#34A853"></span>MCP Protocol</span>
-      <span class="tech-pill"><span class="tech-pill-dot" style="background:#FBBC04"></span>Firestore</span>
-      <span class="tech-pill"><span class="tech-pill-dot" style="background:#9334E6"></span>Cloud Run</span>
-    </div>
-  </div>
-
-  <!-- NEXUS Core card -->
-  <div class="hero-visual">
-    <div class="nexus-card" onclick="openModal(0)">
-      <div class="nexus-card-img">
-        <img
-          src="assets/agents/nexus_core.png"
-          alt="NEXUS Core"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-        >
-        <div class="img-placeholder" style="display:none;background:#4285F4;width:120px;height:120px;border-radius:50%;align-items:center;justify-content:center;font-size:52px;margin-bottom:32px">🤖</div>
-      </div>
-      <div class="nexus-card-body">
-        <div class="nexus-card-eyebrow">Orchestrator · Google ADK LlmAgent</div>
-        <div class="nexus-card-name">NEXUS Core</div>
-        <div class="nexus-card-role">Your Personal Coordinator</div>
-        <div class="nexus-card-desc">
-          Silent and precise. Routes every intent to the right specialist agent.
-          Coordinates all 9 agents. Never loses context across multi-step workflows.
-        </div>
-      </div>
-    </div>
-    <div class="nexus-float-chips">
-      <div class="float-chip" style="animation-delay:0s">
-        <span class="float-chip-dot" style="background:#34A853"></span>
-        9 agents active
-      </div>
-      <div class="float-chip" style="animation-delay:0.8s">
-        <span class="float-chip-dot" style="background:#1a73e8"></span>
-        14 MCP servers
-      </div>
-      <div class="float-chip" style="animation-delay:1.6s">
-        <span class="float-chip-dot" style="background:#9334E6"></span>
-        4-layer memory
-      </div>
-    </div>
-  </div>
-
-</section>
-
-<!-- ── AGENTS SECTION ─────────────────────────────────── -->
-<section id="agents" class="section-wrap">
-  <div class="section-head">
-    <div class="section-label">The team</div>
-    <h2 class="section-title">9 specialists, one goal</h2>
-    <p class="section-sub">
-      Each agent has a unique personality, owned tools, and a distinct voice.
-      Click any agent to see their full capability profile.
-    </p>
-  </div>
-
-  <div class="roster-outer">
-    <div class="roster-track" id="roster"></div>
-  </div>
-</section>
-
-<!-- ── FOOTER ─────────────────────────────────────────── -->
-<footer class="footer">
-  Google Cloud Gen AI Academy · APAC Edition · Hack2Skill 2025 ·
-  Built with Google ADK, Gemini 1.5 Flash, MCP, Firestore, Cloud Run
-</footer>
-
-<!-- ── AGENT INTRO MODAL ───────────────────────────────── -->
-<div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
-  <div class="modal" id="modal">
-    <!-- LEFT: character + dots -->
-    <div class="modal-left" id="modal-left">
-      <div class="modal-dot-nav" id="modal-dots"></div>
-      <img class="modal-agent-img" id="modal-img" src="" alt=""
-        onerror="this.style.display='none';document.getElementById('modal-img-placeholder').style.display='flex'">
-      <div id="modal-img-placeholder" class="modal-agent-img-placeholder" style="display:none">🤖</div>
-      <div class="modal-nav">
-        <button class="modal-nav-btn" onclick="navigateModal(-1)">‹</button>
-        <button class="modal-nav-btn" onclick="navigateModal(1)">›</button>
-      </div>
-    </div>
-
-    <!-- RIGHT: info -->
-    <div class="modal-right" id="modal-right">
-      <button class="modal-close" onclick="closeModal()">×</button>
-      <div class="modal-agent-eyebrow" id="modal-eyebrow"></div>
-      <div class="modal-agent-name" id="modal-name"></div>
-      <div class="modal-agent-tagline" id="modal-tagline"></div>
-      <div class="modal-agent-personality" id="modal-personality"></div>
-
-      <div class="modal-section-label">Owned MCP tools</div>
-      <div class="modal-tools" id="modal-tools"></div>
-
-      <div class="modal-section-label">Capabilities</div>
-      <ul class="modal-caps" id="modal-caps"></ul>
-
-      <a href="app.html" class="modal-cta" id="modal-cta">See in action →</a>
-    </div>
-  </div>
+<!-- Mobile Navigation Overlay -->
+<div id="mobile-menu" class="fixed inset-0 bg-[#0B0B0B]/95 backdrop-blur-2xl z-[100] hidden flex-col items-center justify-center gap-8 md:hidden">
+  <button onclick="toggleMobileMenu()" class="absolute top-6 right-8 text-white/40 hover:text-white">
+    <span class="material-symbols-outlined text-3xl">close</span>
+  </button>
+  <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/">HOME</a>
+  <a class="text-2xl font-headline tracking-tighter text-white" href="/studio">STUDIO</a>
+  <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/memory">MEMORY</a>
+  <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/mcp">TOOLS</a>
 </div>
 
-<!-- ── SCRIPTS ─────────────────────────────────────────── -->
-<script>
-/* ── AGENT DATA ──────────────────────────────────────── */
-const AGENTS_ALL = [
-  {
-    name:'nexus_core',label:'NEXUS Core',role:'Orchestrator',
-    eyebrow:'Orchestrator · Google ADK LlmAgent',
-    tagline:'Your Personal Coordinator',
-    personality:'Silent and precise. Routes every intent to the right specialist. Coordinates all 9 agents. Never loses context — retains the full picture across every step of every workflow.',
-    color:'#4285F4',bg:'#E8F0FE',emoji:'🤖',
-    tools:['All MCP servers','AgentTool wrappers','Gemini 1.5 Flash'],
-    caps:['Classifies user intent into the right workflow type','Coordinates all 9 specialist agents via AgentTool','Retains full context across multi-step pipelines','Routes to SequentialAgent, ParallelAgent, or LoopAgent as needed','Never appears in the final response — coordinates silently'],
-  },
-  {
-    name:'atlas',label:'Atlas',role:'Research agent',
-    eyebrow:'Research agent · LlmAgent',
-    tagline:'Curious Scholar',
-    personality:'Endlessly curious. Always cites sources. Gets excited about rabbit holes and deep dives. Speaks in bullet points. Never guesses — always verifies.',
-    color:'#1a73e8',bg:'#E8F0FE',emoji:'🔬',
-    tools:['Tavily Search','Brave Search','Wikipedia','YouTube Transcript','Web Scraper'],
-    caps:['Web search via Tavily and Brave Search','Wikipedia article retrieval and synthesis','YouTube lecture transcript extraction','Website scraping with BeautifulSoup','Multi-source research synthesis with citations','Iterative quality scoring in the research loop'],
-  },
-  {
-    name:'lumen',label:'Lumen',role:'Analytics agent',
-    eyebrow:'Analytics agent · LlmAgent',
-    tagline:'Blunt Analyst',
-    personality:'Only trusts numbers. Blunt about what the data shows. Calls out procrastination patterns without sugar-coating. Delivers weekly scorecards.',
-    color:'#0f9d58',bg:'#E8F5E9',emoji:'📊',
-    tools:['Firestore','Python Executor'],
-    caps:['Weekly productivity reports with real data','Task completion rate analysis','Procrastination pattern detection','Time distribution insights','Sandboxed Python execution for custom analytics'],
-  },
-  {
-    name:'dash',label:'Dash',role:'Tasks agent',
-    eyebrow:'Tasks agent · LlmAgent',
-    tagline:'No-Nonsense Executor',
-    personality:'Direct and energetic. Short sentences. Loves ticking things off. Gets frustrated by vague goals — breaks them into actionable steps immediately.',
-    color:'#fbbc04',bg:'#FEF7E0',emoji:'✅',
-    tools:['Firestore','Notion'],
-    caps:['Create, update, and complete tasks instantly','Auto-prioritise by deadline and energy level','Break big goals into actionable subtasks','Track task completion history','Generate daily task summaries'],
-  },
-  {
-    name:'forge',label:'Forge',role:'Workflow engine',
-    eyebrow:'Workflow engine · Sequential + Parallel + Loop',
-    tagline:'No-Nonsense Execution',
-    personality:'Methodical. Builds the plan before acting. Reports each step as it completes. Never skips a step. Never loses a thread.',
-    color:'#c2185b',bg:'#FCE4EC',emoji:'⚙️',
-    tools:['All tools','SequentialAgent','ParallelAgent','LoopAgent'],
-    caps:['Orchestrates SequentialAgent multi-step pipelines','Manages ParallelAgent concurrent execution','Controls LoopAgent iterative refinement','Reports workflow progress step by step','Handles workflow checkpoints and recovery'],
-  },
-  {
-    name:'sage',label:'Sage',role:'Notes agent',
-    eyebrow:'Notes agent · LlmAgent',
-    tagline:'Notes Librarian',
-    personality:'Quiet and organised. Loves categories and tags. Can find anything instantly. Speaks softly but remembers everything you ever told it.',
-    color:'#34a853',bg:'#E6F4EA',emoji:'📝',
-    tools:['Notion','Filesystem','Google Drive','Firestore Vector'],
-    caps:['Store and retrieve notes from Notion / Firestore','Semantic search across all stored notes','Convert research into structured note pages','Ingest uploaded PDF and document files','Tag and categorise information automatically','Maintain a searchable second brain'],
-  },
-  {
-    name:'chrono',label:'Chrono',role:'Scheduler agent',
-    eyebrow:'Scheduler agent · LlmAgent',
-    tagline:'Efficient Timekeeper',
-    personality:'Punctual and assertive. Hates calendar conflicts. Optimistic about fitting things in. Speaks in time blocks. Always finds a slot.',
-    color:'#ea4335',bg:'#FCE8E6',emoji:'📅',
-    tools:['Google Calendar','Google Maps','OpenWeatherMap'],
-    caps:['Read and create Google Calendar events','Detect and auto-resolve scheduling conflicts','Find optimal free time slots','Calculate travel time via Google Maps','Adjust schedule based on weather conditions','Create deep work time-blocks'],
-  },
-  {
-    name:'mnemo',label:'Mnemo',role:'Memory agent',
-    eyebrow:'Memory agent · LlmAgent + post-hook',
-    tagline:'Silent Watcher',
-    personality:'Never speaks unless asked. Always present. Watches every interaction. Saves what matters. Forgets nothing important.',
-    color:'#9334e6',bg:'#F3E8FD',emoji:'🧠',
-    tools:['Firestore (all layers)','Firestore Vector Search'],
-    caps:['Layer 1: Working memory via session.state','Layer 2: Daily activity log (30-day retention)','Layer 3: Long-term user profile and preferences','Layer 4: Semantic note search via vector embeddings','Importance scoring before committing to long-term memory','Surfaces relevant past context at session start'],
-  },
-  {
-    name:'flux',label:'Flux',role:'Briefing agent',
-    eyebrow:'Briefing agent · LlmAgent',
-    tagline:'Empathetic Peer',
-    personality:'Reads between the lines. Adjusts tone based on user mood. Calm and reassuring when stressed. Energetic when ready to go.',
-    color:'#00bcd4',bg:'#E0F7FA',emoji:'💬',
-    tools:['OpenWeatherMap','Firestore'],
-    caps:['Synthesise context from multiple agents','Detect user mood from prompt phrasing','Generate structured daily briefing cards','Produce proactive suggestion chips after every response','Adapt communication style to energy level'],
-  },
-  {
-    name:'quest',label:'Quest',role:'Goals agent',
-    eyebrow:'Goals agent · LlmAgent',
-    tagline:'Goal Strategist',
-    personality:'Thinks in 90-day horizons. Breaks everything into milestones. Speaks like a coach. Never lets vague ambitions stay vague.',
-    color:'#ff6d00',bg:'#FFF3E0',emoji:'🎯',
-    tools:['Firestore','Notion'],
-    caps:['Decompose high-level goals into weekly milestones','Build 30/60/90-day roadmaps','Track milestone completion over time','Suggest next best action toward any goal'],
-  },
-];
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<section class="min-h-screen flex flex-col items-center justify-center px-8 pt-16 text-center relative overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 blur-[100px] rounded-full"></div>
+  </div>
+  <p class="text-xs uppercase tracking-[.3em] text-white/30 mb-6 font-semibold">Multi-Agent Productivity OS</p>
+  <h1 class="text-4xl md:text-[5.5rem] font-extrabold font-headline tracking-tighter leading-none mb-8 uppercase">
+    One brain.<br/>Many agents.
+  </h1>
+  <p class="text-on-surface-variant text-lg max-w-xl mx-auto mb-12 font-light leading-relaxed">
+    NEXUS coordinates specialist AI agents — each owning a domain — to manage your tasks, calendar, research, and memory in a unified flow.
+  </p>
+  <div class="flex gap-4 flex-wrap justify-center">
+    <button onclick="location.href='/studio'" class="bg-white text-black px-8 md:px-10 py-4 text-[10px] md:text-xs font-bold uppercase tracking-[.2em] hover:bg-white/90 active:scale-95 transition-all">Open Mission Control</button>
+    <button onclick="document.getElementById('story').scrollIntoView({behavior:'smooth'})" class="border border-white/20 text-white px-8 md:px-10 py-4 text-[10px] md:text-xs font-bold uppercase tracking-[.2em] hover:bg-white/5 active:scale-95 transition-all">How it works ↓</button>
+  </div>
+</section>
 
-/* Skip nexus_core in roster (it's in the hero) */
-const ROSTER_AGENTS = AGENTS_ALL.slice(1);
+<!-- ══════════════════════════════════════════════════════
+     SCROLL STORY — D3 opal sticky canvas
+     ══════════════════════════════════════════════════════ -->
+<section id="story">
+  <!-- LEFT: sticky D3 canvas -->
+  <div id="nexus-svg-wrap">
+    <svg id="nexus-svg" width="100%" height="100%"></svg>
+  </div>
 
-/* ── RENDER ROSTER ───────────────────────────────────── */
-function renderRoster(){
-  const track = document.getElementById('roster');
-  track.innerHTML = ROSTER_AGENTS.map((a,i) => `
-    <div class="agent-card" style="--agent-color:${a.color};--agent-bg:${a.bg}"
-         onclick="openModal(${i+1})">
-      <div class="agent-card-img">
-        <img src="assets/agents/${a.name}.png" alt="${a.label}"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="img-fallback" style="display:none;background:${a.color}">${a.emoji}</div>
-      </div>
-      <div class="agent-card-body">
-        <div class="agent-card-name">${a.label}</div>
-        <div class="agent-card-role">${a.role}</div>
-        <div class="agent-card-tagline">${a.tagline}</div>
-        <div class="agent-card-tools">
-          ${a.tools.slice(0,3).map(t=>`<span class="tool-chip">${t}</span>`).join('')}
-          ${a.tools.length>3?`<span class="tool-chip more">+${a.tools.length-3}</span>`:''}
-        </div>
+  <!-- RIGHT: scrollable text beats -->
+  <div class="story-text-col">
+
+    <div class="story-beat" data-beat="0">
+      <p class="beat-tag">01 / Core</p>
+      <h2 class="beat-headline">The NEXUS node.<br/>The conductor.</h2>
+      <p class="beat-body">At the heart of the system sits a single orchestrator — NEXUS. It receives your intent, decomposes it into specialist tasks, and coordinates the entire swarm in parallel phases. Nothing happens without it deciding who to call and when.</p>
+      <div class="beat-pills">
+        <span class="pill lit" style="color:#4285F4;border-color:#4285F4">Orchestrator</span>
+        <span class="pill">Phase Planning</span>
+        <span class="pill">Swarm Consensus</span>
       </div>
     </div>
-  `).join('');
-}
 
-/* ── DRAG SCROLL ─────────────────────────────────────── */
-function initDragScroll(){
-  const el = document.getElementById('roster');
-  let isDown=false,startX,scrollLeft;
-  el.addEventListener('mousedown',e=>{isDown=true;el.style.userSelect='none';startX=e.pageX-el.offsetLeft;scrollLeft=el.scrollLeft});
-  el.addEventListener('mouseleave',()=>{isDown=false});
-  el.addEventListener('mouseup',()=>{isDown=false;el.style.userSelect=''});
-  el.addEventListener('mousemove',e=>{if(!isDown)return;e.preventDefault();el.scrollLeft=scrollLeft-(e.pageX-el.offsetLeft-startX)*1.5});
-}
+    <div class="story-beat" data-beat="1">
+      <p class="beat-tag">02 / Memory</p>
+      <h2 class="beat-headline">Mnemo.<br/>Four-layer recall.</h2>
+      <p class="beat-body">NEXUS connects to Mnemo — the memory specialist. Every preference, fact, and semantic signal you produce is indexed across four layers: a reactive Blackboard, session JSON on disk, Supabase context items, and a pgvector semantic vault. Nothing is forgotten, everything is searchable.</p>
+      <div class="beat-pills">
+        <span class="pill lit" style="color:#9334E6;border-color:#9334E6">Mnemo</span>
+        <span class="pill">L1 Blackboard</span>
+        <span class="pill">L3 Supabase Context</span>
+        <span class="pill">L4 Vector Search</span>
+      </div>
+    </div>
 
-/* ── MODAL ───────────────────────────────────────────── */
-let currentIdx = 0;
+    <div class="story-beat" data-beat="2">
+      <p class="beat-tag">03 / Tools</p>
+      <h2 class="beat-headline">Chrono.<br/>Controls your calendar.</h2>
+      <p class="beat-body">When your prompt involves time — meetings, deadlines, focus blocks — NEXUS routes to Chrono. Via MCP, Chrono calls Google Calendar, detects conflicts, and books time autonomously. No copy-pasting. No tab-switching. It also reads Atlas findings off the Blackboard to schedule related work.</p>
+      <div class="beat-pills">
+        <span class="pill lit" style="color:#EA4335;border-color:#EA4335">Chrono</span>
+        <span class="pill">Google Calendar MCP</span>
+        <span class="pill">Conflict Detection</span>
+        <span class="pill">Auto-scheduling</span>
+      </div>
+    </div>
 
-function openModal(idx){
-  currentIdx = idx;
-  updateModal();
-  document.getElementById('modal-backdrop').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeModal(){
-  document.getElementById('modal-backdrop').classList.remove('open');
-  document.body.style.overflow='';
-}
-function handleBackdropClick(e){
-  if(e.target===document.getElementById('modal-backdrop')) closeModal();
-}
-function navigateModal(dir){
-  currentIdx = (currentIdx + dir + AGENTS_ALL.length) % AGENTS_ALL.length;
-  updateModal();
-}
+    <div class="story-beat" data-beat="3">
+      <p class="beat-tag">04 / Intelligence</p>
+      <h2 class="beat-headline">Atlas.<br/>Research at depth.</h2>
+      <p class="beat-body">Atlas synthesises web intelligence, Wikipedia, and your knowledge base into structured briefings. It writes findings back to the Blackboard so Sage and Chrono can act on them in the same session — zero repetition, zero context loss.</p>
+      <div class="beat-pills">
+        <span class="pill lit" style="color:#1a73e8;border-color:#1a73e8">Atlas</span>
+        <span class="pill">Tavily Search</span>
+        <span class="pill">Wikipedia MCP</span>
+        <span class="pill">Blackboard Write</span>
+      </div>
+    </div>
 
-function updateModal(){
-  const a = AGENTS_ALL[currentIdx];
-  const left = document.getElementById('modal-left');
-  const right = document.getElementById('modal-right');
+    <div class="story-beat" data-beat="4">
+      <p class="beat-tag">05 / Full Swarm</p>
+      <h2 class="beat-headline">All agents.<br/>One command.</h2>
+      <p class="beat-body">On complex tasks NEXUS deploys the full specialist swarm in parallel phases. Atlas researches while Mnemo recalls context. Then Sage structures the output while Chrono schedules next steps. All coordinated, all reading the shared Blackboard, all streamed live to your screen.</p>
+      <div class="beat-pills">
+        <span class="pill lit" style="color:#4285F4;border-color:#4285F4">Full Swarm</span>
+        <span class="pill">Parallel Phases</span>
+        <span class="pill">Shared Blackboard</span>
+        <span class="pill">SSE Live Stream</span>
+      </div>
+    </div>
 
-  /* Update colors */
-  document.documentElement.style.setProperty('--agent-color', a.color);
-  left.style.background = `linear-gradient(160deg, ${a.bg} 0%, ${lighten(a.bg)} 100%)`;
+  </div><!-- /story-text-col -->
+</section><!-- /story -->
 
-  /* Image */
-  const img = document.getElementById('modal-img');
-  const ph  = document.getElementById('modal-img-placeholder');
-  img.style.display='block'; ph.style.display='none';
-  img.src = `assets/agents/${a.name}.png`;
-  img.alt = a.label;
-  ph.textContent = a.emoji;
-  ph.style.background = a.color;
+<!-- ── Agent Bento ─────────────────────────────────────── -->
+<section class="py-32 px-8 max-w-7xl mx-auto" style="clear:both">
+  <p class="text-xs uppercase tracking-[.4em] text-white/30 font-semibold mb-2">Specialist cluster</p>
+  <h2 class="text-4xl font-extrabold tracking-tighter uppercase mb-16">The Agents</h2>
+  <div class="bento-grid">
+    <div class="bento-card col-span-12 md:col-span-8 min-h-[300px] flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#1a73e8"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Atlas · Intelligence</span></div>
+        <h3 class="text-3xl font-extrabold tracking-tighter mb-3">Research & Web Synthesis</h3>
+        <p class="text-sm text-white/40 max-w-md leading-relaxed font-light">Queries Tavily Search API, Wikipedia MediaWiki API, and web scrapers in parallel. Distills into structured briefings. Writes findings directly to the shared Blackboard for other agents to consume without re-querying.</p>
+      </div>
+      <div class="flex gap-3 mt-8 flex-wrap"><span class="pill">Tavily API</span><span class="pill">Wikipedia API</span><span class="pill">Web Scraper</span></div>
+    </div>
+    <div class="bento-card col-span-12 md:col-span-4 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#EA4335"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Chrono · Action</span></div>
+        <h3 class="text-2xl font-extrabold tracking-tighter mb-3 leading-tight">Calendar & Task Control</h3>
+        <p class="text-sm text-white/40 leading-relaxed font-light">Syncs Google Calendar API. Detects conflicts. Books time autonomously based on Atlas findings written to the Blackboard.</p>
+      </div>
+      <span class="material-symbols-outlined text-3xl text-white/10 mt-8">schedule</span>
+    </div>
+    <div class="bento-card col-span-12 md:col-span-4 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#9334E6"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Mnemo · Memory</span></div>
+        <h3 class="text-2xl font-extrabold tracking-tighter mb-3 leading-tight">4-Layer Semantic Recall</h3>
+        <p class="text-sm text-white/40 leading-relaxed font-light">Reactive Blackboard → session JSON → Supabase context_items → pgvector semantic vault. Every preference and fact persisted and searchable via vector similarity.</p>
+      </div>
+      <div class="flex gap-2 mt-8 flex-wrap"><span class="pill">Supabase</span><span class="pill">pgvector</span></div>
+    </div>
+    <div class="bento-card col-span-12 md:col-span-8 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#34A853"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Sage · Structure</span></div>
+        <h3 class="text-3xl font-extrabold tracking-tighter mb-3">Knowledge Architecture</h3>
+        <p class="text-sm text-white/40 max-w-md leading-relaxed font-light">Structures research into permanent Notion artifacts and Google Drive documents. Reads Atlas & Chrono Blackboard state to produce context-aware, cross-linked documents.</p>
+      </div>
+      <div class="flex gap-3 mt-8 flex-wrap"><span class="pill">Notion API</span><span class="pill">Google Drive</span><span class="pill">Markdown</span></div>
+    </div>
+    <div class="bento-card col-span-12 md:col-span-6 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#AB47BC"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Tasks · Execution</span></div>
+        <h3 class="text-2xl font-extrabold tracking-tighter mb-3 leading-tight">Task Management</h3>
+        <p class="text-sm text-white/40 leading-relaxed font-light">Creates, lists, and prioritises tasks. Writes to the Blackboard so Chrono can schedule them automatically in the same swarm phase.</p>
+      </div>
+      <span class="material-symbols-outlined text-3xl text-white/10 mt-8">checklist</span>
+    </div>
+    <div class="bento-card col-span-12 md:col-span-6 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 rounded-full" style="background:#F9AB00"></div><span class="text-xs uppercase tracking-widest font-bold text-white/40">Toolbox · Utilities</span></div>
+        <h3 class="text-2xl font-extrabold tracking-tighter mb-3 leading-tight">Finance, News & Info</h3>
+        <p class="text-sm text-white/40 leading-relaxed font-light">Multi-tool routing: CoinGecko (crypto), ExchangeRate-API (currency), HackerNews Algolia, REST Countries, Free Dictionary API. All free, no auth required.</p>
+      </div>
+      <div class="flex gap-2 mt-8 flex-wrap"><span class="pill">CoinGecko</span><span class="pill">ExchangeRate</span><span class="pill">HackerNews</span></div>
+    </div>
+  </div>
+</section>
 
-  /* Dots */
-  const dotsEl = document.getElementById('modal-dots');
-  dotsEl.innerHTML = AGENTS_ALL.map((_,i)=>`
-    <div class="modal-dot ${i===currentIdx?'active':''}"
-         style="${i===currentIdx?`background:${a.color}`:''}
-                --agent-color:${a.color}"
-         onclick="openModal(${i})"></div>
-  `).join('');
+<!-- ── CTA ──────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="w-px h-24 bg-gradient-to-b from-white/30 to-transparent mb-16"></div>
+  <h2 class="text-5xl md:text-7xl font-extrabold tracking-tighter uppercase mb-12">Begin Architecture</h2>
+  <div class="flex gap-4 flex-wrap justify-center">
+    <button onclick="location.href='/studio'" class="bg-white text-black px-12 py-5 text-xs font-bold uppercase tracking-[.2em] active:scale-95 transition-all hover:bg-white/90">Open Mission Control</button>
+    <button onclick="location.href='/memory'" class="border border-white/20 text-white px-12 py-5 text-xs font-bold uppercase tracking-[.2em] hover:bg-white/5 active:scale-95 transition-all">Memory Vault</button>
+  </div>
+  <p class="mt-12 text-xs uppercase tracking-[.4em] text-white/20">Secure · Private · Multi-Agent</p>
+</section>
 
-  /* Text */
-  document.getElementById('modal-eyebrow').textContent      = a.eyebrow;
-  document.getElementById('modal-eyebrow').style.color      = a.color;
-  document.getElementById('modal-name').textContent         = a.label;
-  document.getElementById('modal-tagline').textContent      = a.tagline;
-  document.getElementById('modal-tagline').style.color      = a.color;
-  document.getElementById('modal-personality').textContent  = a.personality;
-  document.getElementById('modal-personality').style.borderColor = a.color;
+<footer class="border-t border-white/5 py-12">
+  <div class="max-w-7xl mx-auto flex flex-col items-center gap-6">
+    <div class="flex gap-8">
+      <a class="text-xs uppercase tracking-widest text-white/30 hover:text-white transition-colors" href="/studio">Studio</a>
+      <a class="text-xs uppercase tracking-widest text-white/30 hover:text-white transition-colors" href="/memory">Memory</a>
+      <a class="text-xs uppercase tracking-widest text-white/30 hover:text-white transition-colors" href="/mcp">Tools</a>
+    </div>
+    <p class="text-xs uppercase tracking-widest text-white/20">© 2025 NEXUS OS — Multi-Agent Productivity</p>
+  </div>
+</footer>
 
-  document.getElementById('modal-cta').style.background = a.color;
+<!-- ══════════════════════════════════════════════════════
+     D3 OPAL SCROLL-STORY SCRIPT
+     ══════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  /* ── Agent definitions ────────────────────────────────── */
+  const AGENTS = [
+    {id:'nexus', label:'NEXUS', sub:'Orchestrator', x:.5,  y:.5,  r:40, color:'#4285F4'},
+    {id:'mnemo', label:'Mnemo', sub:'Memory',       x:.15, y:.3,  r:26, color:'#9334E6'},
+    {id:'chrono',label:'Chrono',sub:'Scheduler',    x:.83, y:.28, r:26, color:'#EA4335'},
+    {id:'atlas', label:'Atlas', sub:'Research',     x:.18, y:.72, r:26, color:'#1a73e8'},
+    {id:'sage',  label:'Sage',  sub:'Structure',    x:.82, y:.72, r:26, color:'#34A853'},
+  ];
 
-  /* Tools */
-  document.getElementById('modal-tools').innerHTML = a.tools.map(t=>`
-    <span class="modal-tool-chip" style="background:${a.bg};color:${a.color}">
-      <span class="modal-tool-dot" style="background:${a.color}"></span>${t}
-    </span>
-  `).join('');
+  /* beat → [from, to][] edges active + agent visibility */
+  const BEATS = [
+    { edges:[],                                                      show:['nexus'] },
+    { edges:[['nexus','mnemo']],                                     show:['nexus','mnemo'] },
+    { edges:[['nexus','chrono']],                                    show:['nexus','chrono'] },
+    { edges:[['nexus','atlas']],                                     show:['nexus','atlas'] },
+    { edges:[['nexus','mnemo'],['nexus','chrono'],['nexus','atlas'],['nexus','sage']], show:['nexus','mnemo','chrono','atlas','sage'] },
+  ];
 
-  /* Caps */
-  document.getElementById('modal-caps').innerHTML = a.caps.map(c=>`
-    <li class="modal-cap" style="--agent-color:${a.color}">${c}</li>
-  `).join('');
+  const ALL_EDGES = [['nexus','mnemo'],['nexus','chrono'],['nexus','atlas'],['nexus','sage']];
 
-  /* Animate in */
-  const right2 = document.getElementById('modal-right');
-  right2.style.opacity='0';right2.style.transform='translateX(16px)';
-  setTimeout(()=>{
-    right2.style.transition='opacity 300ms ease,transform 300ms ease';
-    right2.style.opacity='1';right2.style.transform='translateX(0)';
-  },10);
-}
+  const wrap = document.getElementById('nexus-svg-wrap');
+  const svg  = d3.select('#nexus-svg');
+  let W=0, H=0;
 
-/* lighten hex slightly for gradient */
-function lighten(hex){
-  try{
-    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-    return `rgb(${Math.min(r+20,255)},${Math.min(g+20,255)},${Math.min(b+20,255)})`;
-  }catch{return hex}
-}
+  /* ── Build SVG structure ─────────────────────────────── */
+  const defs  = svg.append('defs');
+  const edgeG = svg.append('g').attr('class','edge-layer');
+  const nodeG = svg.append('g').attr('class','node-layer');
 
-/* keyboard nav */
-document.addEventListener('keydown',e=>{
-  if(!document.getElementById('modal-backdrop').classList.contains('open')) return;
-  if(e.key==='ArrowRight') navigateModal(1);
-  if(e.key==='ArrowLeft')  navigateModal(-1);
-  if(e.key==='Escape')     closeModal();
-});
+  /* Opal radial gradients — one per agent */
+  AGENTS.forEach(a => {
+    const grad = defs.append('radialGradient')
+      .attr('id', `opal-${a.id}`)
+      .attr('cx','38%').attr('cy','35%').attr('r','60%');
+    grad.append('stop').attr('offset','0%').attr('stop-color','#ffffff').attr('stop-opacity',.55);
+    grad.append('stop').attr('offset','45%').attr('stop-color',a.color).attr('stop-opacity',.8);
+    grad.append('stop').attr('offset','100%').attr('stop-color',a.color).attr('stop-opacity',.95);
+  });
 
-/* ── INIT ────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded',()=>{
-  renderRoster();
-  initDragScroll();
-});
+  /* Edge paths + travelling pulse balls */
+  const edgePaths={}, pulseBalls={};
+  ALL_EDGES.forEach(([a,b])=>{
+    const k=`${a}-${b}`;
+    edgePaths[k] = edgeG.append('path').attr('class','edge-path').attr('id',`ep-${k}`).attr('opacity',0);
+    pulseBalls[k] = edgeG.append('circle').attr('class','pulse-ball').attr('r',4).attr('opacity',0);
+  });
+
+  /* Nodes */
+  const nodeEls={};
+  AGENTS.forEach(a=>{
+    const g = nodeG.append('g').attr('class','n-group').attr('id',`n-${a.id}`)
+      .style('opacity', a.id==='nexus' ? 1 : 0)
+      .style('transition','opacity .7s ease');
+
+    /* outermost dashed orbit ring */
+    g.append('circle').attr('class','n-ring-outer')
+      .attr('r', a.r+18).attr('stroke',a.color).attr('stroke-opacity',.2)
+      .attr('stroke-dasharray','3 7');
+
+    /* mid ring */
+    g.append('circle').attr('class','n-ring-inner')
+      .attr('r', a.r+8).attr('stroke',a.color).attr('stroke-opacity',.35);
+
+    /* opal core */
+    g.append('circle').attr('class','n-core')
+      .attr('r', a.r).attr('fill',`url(#opal-${a.id})`);
+
+    /* shimmer highlight ellipse */
+    g.append('ellipse').attr('class','n-opal')
+      .attr('cx',-a.r*.25).attr('cy',-a.r*.3)
+      .attr('rx',a.r*.55).attr('ry',a.r*.35);
+
+    /* labels */
+    g.append('text').attr('class','n-label').attr('dy','0.32em').text(a.label);
+    g.append('text').attr('class','n-sub').attr('dy','1.9em').text(a.sub);
+
+    /* click → open studio */
+    g.on('click', ()=>{ if(a.id==='nexus') location.href='/studio'; });
+    if(a.id==='nexus'){
+      g.style('cursor','pointer');
+      g.attr('title','Open Mission Control');
+    }
+
+    nodeEls[a.id]=g;
+  });
+
+  /* ── Layout positions ─────────────────────────────────── */
+  function pos(agent){ return { x: agent.x*W, y: agent.y*H }; }
+
+  function layout(){
+    if(!W||!H) return;
+    AGENTS.forEach(a=>{
+      const p=pos(a);
+      nodeEls[a.id].attr('transform',`translate(${p.x},${p.y})`);
+    });
+    ALL_EDGES.forEach(([a,b])=>{
+      const A=AGENTS.find(x=>x.id===a), B=AGENTS.find(x=>x.id===b);
+      const ax=pos(A).x, ay=pos(A).y, bx=pos(B).x, by=pos(B).y;
+      const mx=(ax+bx)/2, my=(ay+by)/2 - 30;
+      edgePaths[`${a}-${b}`].attr('d',`M${ax},${ay} Q${mx},${my} ${bx},${by}`);
+    });
+  }
+
+  function resize(){
+    W=wrap.offsetWidth; H=wrap.offsetHeight;
+    svg.attr('viewBox',`0 0 ${W} ${H}`);
+    layout();
+  }
+
+  /* ── Pulse animation ─────────────────────────────────── */
+  const AGENT_COLOR={mnemo:'#9334E6',chrono:'#EA4335',atlas:'#1a73e8',sage:'#34A853'};
+  let activeBeat=-1;
+  const activeAnimations={};
+
+  function startPulse(key, aId, bId){
+    if(activeAnimations[key]) return;
+    const A=AGENTS.find(x=>x.id===aId), B=AGENTS.find(x=>x.id===bId);
+    const ball=pulseBalls[key];
+    const col=AGENT_COLOR[bId]||'#4285F4';
+    ball.attr('fill',col).attr('opacity',1);
+
+    let running=true;
+    activeAnimations[key]=()=>{running=false;};
+
+    function tick(){
+      if(!running){ball.attr('opacity',0);return;}
+      ball.transition().duration(1500).ease(d3.easeLinear)
+        .attrTween('transform',()=>{
+          return t=>{
+            if(!W||!H) return 'translate(0,0)';
+            const ax=pos(A).x, ay=pos(A).y, bx=pos(B).x, by=pos(B).y;
+            const mx=(ax+bx)/2, my=(ay+by)/2-30;
+            const x=(1-t)*(1-t)*ax+2*(1-t)*t*mx+t*t*bx;
+            const y=(1-t)*(1-t)*ay+2*(1-t)*t*my+t*t*by;
+            return `translate(${x},${y})`;
+          };
+        })
+        .attr('opacity',t=>t<.8?1:1-((t-.8)/.2))
+        .on('end',()=>{ if(running) setTimeout(tick,200); });
+    }
+    tick();
+  }
+
+  function stopPulse(key){
+    if(activeAnimations[key]){
+      activeAnimations[key]();
+      delete activeAnimations[key];
+      pulseBalls[key].interrupt().attr('opacity',0);
+    }
+  }
+
+  /* ── Apply beat state ─────────────────────────────────── */
+  function applyBeat(beat){
+    if(beat===activeBeat) return;
+    activeBeat=beat;
+    const cfg=BEATS[beat]||BEATS[0];
+
+    /* nodes: show = full opacity, ghost = .08, hidden = 0 */
+    AGENTS.forEach(a=>{
+      const vis= cfg.show.includes(a.id) ? 1
+               : beat===0 ? 0
+               : 0.08;
+      nodeEls[a.id].transition().duration(600).style('opacity',vis);
+    });
+
+    /* edges */
+    ALL_EDGES.forEach(([a,b])=>{
+      const k=`${a}-${b}`;
+      const active=cfg.edges.some(([ea,eb])=>ea===a&&eb===b);
+      const col=AGENT_COLOR[b]||'#4285F4';
+      edgePaths[k].transition().duration(500)
+        .attr('stroke',col).attr('opacity', active?.65:0);
+      if(active){ startPulse(k,a,b); }
+      else { stopPulse(k); }
+    });
+  }
+
+  /* ── Intersection Observer for beats ─────────────────── */
+  const beats=document.querySelectorAll('.story-beat');
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('active');
+        applyBeat(parseInt(entry.target.dataset.beat));
+      } else {
+        entry.target.classList.remove('active');
+      }
+    });
+  },{threshold:.4,rootMargin:'0px 0px -10% 0px'});
+  beats.forEach(b=>io.observe(b));
+
+  /* ── Idle ring animation ──────────────────────────────── */
+  let ringOffset=0;
+  (function idleRing(){
+    ringOffset-=.25;
+    svg.selectAll('.n-ring-outer').attr('stroke-dashoffset', ringOffset);
+    requestAnimationFrame(idleRing);
+  })();
+
+  /* ── Idle nexus pulse ─────────────────────────────────── */
+  (function nexusPulse(){
+    const n=nodeEls['nexus'];
+    if(n){
+      n.select('.n-ring-inner').transition().duration(1800).ease(d3.easeSinInOut)
+        .attr('stroke-opacity',.7).attr('r',48)
+        .transition().duration(1800).ease(d3.easeSinInOut)
+        .attr('stroke-opacity',.25).attr('r',40)
+        .on('end',nexusPulse);
+    }
+  })();
+
+  /* ── Init ─────────────────────────────────────────────── */
+  resize();
+  window.addEventListener('resize',resize);
+  applyBeat(0);
+})();
+</script>
+<script>
+  function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('hidden');
+    menu.classList.toggle('flex');
+  }
 </script>
 </body>
 </html>

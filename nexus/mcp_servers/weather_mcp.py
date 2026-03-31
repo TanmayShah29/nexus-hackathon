@@ -2,14 +2,18 @@
 weather_mcp.py — Weather MCP (OpenWeatherMap + wttr.in fallback)
 """
 
-import os
-import asyncio
+import logging
 from typing import Any
 import aiohttp
 
+from nexus.utils.retry import RetryConfig, with_retry
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
+logger = logging.getLogger("nexus")
+
+from nexus.config import get_demo_mode, get_openweather_api_key
+
+DEMO_MODE = get_demo_mode()
+OPENWEATHER_API_KEY = get_openweather_api_key()
 
 
 WEATHER_FIXTURE = {
@@ -20,6 +24,8 @@ WEATHER_FIXTURE = {
     "wind_speed": 12,
     "icon": "01d",
 }
+
+WEATHER_RETRY_CONFIG = RetryConfig(max_attempts=3, base_delay=0.5)
 
 
 class WeatherMCP:
@@ -50,9 +56,10 @@ class WeatherMCP:
         data["location"] = location
         return data
 
+    @with_retry(WEATHER_RETRY_CONFIG)
     async def _openweather(self, location: str) -> dict[str, Any]:
         """Get weather from OpenWeatherMap."""
-        url = f"https://api.openweathermap.org/data/2.5/weather"
+        url = "https://api.openweathermap.org/data/2.5/weather"
         params = {"q": location, "appid": self.api_key, "units": "metric"}
 
         async with aiohttp.ClientSession() as session:
@@ -69,6 +76,7 @@ class WeatherMCP:
                     "icon": data["weather"][0]["icon"],
                 }
 
+    @with_retry(WEATHER_RETRY_CONFIG)
     async def _wttr_in(self, location: str) -> dict[str, Any]:
         """Fallback: wttr.in (completely free, no key)."""
         url = f"https://wttr.in/{location}?format=j1"

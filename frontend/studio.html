@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS OS | Mission Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={darkMode:"class",theme:{extend:{
+  colors:{"surface":"#131313","on-surface":"#e5e2e1","on-surface-variant":"#c6c6c6","secondary":"#ddb7ff","tertiary":"#71f8e4","background":"#0B0B0B","surface-container":"#201f1f","outline-variant":"#474747"},
+  fontFamily:{"headline":["Plus Jakarta Sans"],"body":["Plus Jakarta Sans"]},
+  borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"9999px"}
+}}}
+</script>
+<style>
+*{box-sizing:border-box}
+body{background:#0B0B0B;background-image:radial-gradient(#FFFFFF0E 1px,transparent 1px);background-size:40px 40px;color:#e5e2e1;font-family:"Plus Jakarta Sans",sans-serif;overflow:hidden;height:100vh}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+
+/* ── Layout ── */
+#root{display:grid;grid-template-columns:80px 1fr 340px;grid-template-rows:64px 1fr;height:100vh;width:100vw;overflow:hidden}
+@media (max-width: 1200px) {
+  #root{grid-template-columns:64px 1fr 300px}
+}
+@media (max-width: 900px) {
+  #root{grid-template-columns:1fr;grid-template-rows:64px 1fr}
+  #sidenav, #observation{display:none !important}
+}
+#topbar{grid-column:1/-1;grid-row:1;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(11,11,11,.7);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:50}
+#sidenav{grid-column:1;grid-row:2;border-right:1px solid rgba(255,255,255,.07);background:rgba(26,26,26,.5);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:20px}
+#canvas-area{grid-column:2;grid-row:2;position:relative;overflow:hidden}
+@media (max-width: 900px) {
+  #canvas-area{grid-column:1}
+}
+#observation{grid-column:3;grid-row:2;border-left:1px solid rgba(255,255,255,.08);background:rgba(11,11,11,.9);display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Sidenav icons ── */
+.nav-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);cursor:pointer;border-radius:4px;transition:all .15s}
+.nav-icon:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-icon.active{color:#fff;background:rgba(255,255,255,.1);box-shadow:0 0 12px rgba(255,255,255,.1)}
+
+/* ── D3 swarm canvas ── */
+#swarm-svg{width:100%;height:100%}
+
+/* Node styles */
+.sw-node{cursor:pointer}
+.sw-core{transition:filter .25s,r .3s}
+.sw-node:hover .sw-core{filter:brightness(1.3)}
+.sw-ring-o{fill:none;stroke-width:.7}
+.sw-ring-i{fill:none;stroke-width:.5}
+.sw-opal{fill:rgba(255,255,255,.16);pointer-events:none}
+.sw-label{font-family:"Plus Jakarta Sans",sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;fill:#e5e2e1;text-anchor:middle;pointer-events:none}
+.sw-sub{font-family:"Plus Jakarta Sans",sans-serif;font-size:8.5px;fill:rgba(229,226,225,.38);text-anchor:middle;pointer-events:none}
+
+/* Edge styles */
+.sw-edge{fill:none;stroke-width:1.3;stroke-dasharray:5 6;opacity:0;transition:opacity .4s,stroke .4s}
+.sw-edge.live{opacity:.7}
+.sw-edge.done{opacity:.35}
+
+/* Status pill on node */
+.sw-status-pill{font-family:"Plus Jakarta Sans",sans-serif;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-anchor:middle;pointer-events:none}
+
+/* ── Observation deck ── */
+#obs-header{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+#obs-body{flex:1;overflow-y:auto;padding:16px}
+#obs-body::-webkit-scrollbar{width:3px}
+#obs-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+#response-area{padding:16px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;max-height:55%;overflow-y:auto}
+#response-area::-webkit-scrollbar{width:3px}
+#response-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+
+/* Trace card */
+.trace-card{border-left:2px solid rgba(255,255,255,.1);padding:8px 0 8px 12px;margin-bottom:10px;animation:fade-in .3s ease}
+.trace-card.running{border-color:#F9AB00}
+.trace-card.done{border-color:#34A853}
+.trace-card.error{border-color:#EA4335}
+@keyframes fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Agent response card */
+.agent-card{background:rgba(30,30,30,.7);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:16px;margin-bottom:10px;animation:fade-in .4s ease}
+
+/* Input bar */
+#input-bar{border-top:1px solid rgba(255,255,255,.08);padding:14px 16px;flex-shrink:0}
+#prompt-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:10px 14px;color:#e5e2e1;font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+#prompt-input:focus{border-color:rgba(255,255,255,.35)}
+#prompt-input::placeholder{color:rgba(255,255,255,.22)}
+
+/* Node tooltip */
+#node-tip{position:absolute;background:rgba(20,20,20,.95);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:10px 14px;font-size:11px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;max-width:200px;line-height:1.6}
+
+/* Markdown rendering inside response */
+#response-area h1,#response-area h2,#response-area h3{font-weight:700;margin:.75rem 0 .4rem;line-height:1.2}
+#response-area h1{font-size:1.1rem}
+#response-area h2{font-size:.95rem}
+#response-area h3{font-size:.88rem;color:rgba(255,255,255,.7)}
+#response-area p{font-size:.82rem;line-height:1.7;color:rgba(255,255,255,.55);margin-bottom:.5rem}
+#response-area ul,#response-area ol{padding-left:1.2rem;color:rgba(255,255,255,.55);font-size:.82rem;line-height:1.7}
+#response-area code{font-family:monospace;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:.8rem}
+#response-area strong{color:rgba(255,255,255,.85);font-weight:600}
+#response-area hr{border:none;border-top:1px solid rgba(255,255,255,.07);margin:.75rem 0}
+
+/* Phase badge */
+.phase-badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.4);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:3px 8px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div id="root">
+
+  <!-- ── Top bar ── -->
+  <header id="topbar">
+    <div class="flex items-center gap-3 md:gap-5">
+      <button onclick="toggleMobileMenu()" class="md:hidden nav-icon" style="background:transparent;box-shadow:none;width:auto;height:auto"><span class="material-symbols-outlined text-white/50">menu</span></button>
+      <span class="font-extrabold tracking-tighter text-white uppercase text-base font-headline">NEXUS OS</span>
+      <span class="text-xs uppercase tracking-[.2em] text-white/20 font-semibold hidden lg:block">Mission Control</span>
+    </div>
+    <div class="hidden md:flex gap-8 items-center">
+      <a class="text-xs uppercase tracking-widest text-white/40 hover:text-white transition-colors" href="/">Home</a>
+      <a class="text-xs uppercase tracking-widest text-white font-bold" href="/studio">Studio</a>
+      <a class="text-xs uppercase tracking-widest text-white/40 hover:text-white transition-colors" href="/memory">Memory</a>
+      <a class="text-xs uppercase tracking-widest text-white/40 hover:text-white transition-colors" href="/mcp">Tools</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="sys-status" class="flex items-center gap-2 text-[10px] md:text-xs text-white/30 uppercase tracking-widest">
+        <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+        <span id="status-text">Awaiting</span>
+      </div>
+      <button class="nav-icon hidden sm:flex"><span class="material-symbols-outlined text-lg">settings</span></button>
+      <button class="nav-icon hidden sm:flex"><span class="material-symbols-outlined text-lg">account_circle</span></button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Overlay -->
+  <div id="mobile-menu" class="fixed inset-0 bg-[#0B0B0B]/95 backdrop-blur-2xl z-[100] hidden flex-col items-center justify-center gap-8 md:hidden">
+    <button onclick="toggleMobileMenu()" class="absolute top-6 right-8 text-white/40 hover:text-white">
+      <span class="material-symbols-outlined text-3xl">close</span>
+    </button>
+    <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/">HOME</a>
+    <a class="text-2xl font-headline tracking-tighter text-white" href="/studio">STUDIO</a>
+    <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/memory">MEMORY</a>
+    <a class="text-2xl font-headline tracking-tighter text-white/50 hover:text-white" href="/mcp">TOOLS</a>
+  </div>
+
+  <!-- ── Side nav ── -->
+  <nav id="sidenav" class="hidden md:flex">
+    <div class="nav-icon" onclick="location.href='/'"><span class="material-symbols-outlined">home</span></div>
+    <div class="nav-icon active"><span class="material-symbols-outlined">terminal</span></div>
+    <div class="nav-icon" onclick="location.href='/memory'"><span class="material-symbols-outlined">database</span></div>
+    <div class="nav-icon" onclick="location.href='/mcp'"><span class="material-symbols-outlined">inventory_2</span></div>
+    <div class="mt-auto"></div>
+    <div class="nav-icon" id="clear-btn" title="Clear session"><span class="material-symbols-outlined">delete_sweep</span></div>
+  </nav>
+
+  <!-- ── Swarm canvas ── -->
+  <main id="canvas-area">
+    <svg id="swarm-svg"></svg>
+    <div id="node-tip"></div>
+    <!-- Overlay label when idle -->
+    <div id="canvas-hint" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:.18">
+      <p style="font-size:10px;letter-spacing:.25em;text-transform:uppercase;font-weight:600;padding:0 20px;text-align:center">Click the NEXUS node or send a prompt</p>
+    </div>
+  </main>
+
+  <!-- Input bar overlay for mobile/desktop -->
+  <div id="input-bar" class="fixed bottom-0 left-0 w-full md:relative bg-[#0B0B0B]/80 backdrop-blur-md md:bg-transparent z-40 border-t border-white/10 md:border-t-0">
+    <div class="p-4 md:p-0 max-w-4xl mx-auto md:max-w-none">
+      <input type="text" id="prompt-input" placeholder="Initiate cognitive swarm..." class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-tertiary/50 outline-none transition-all">
+    </div>
+  </div>
+
+  <!-- ── Observation deck ── -->
+  <aside id="observation" class="hidden md:flex">
+    <div id="obs-header">
+      <span class="text-xs uppercase tracking-[.3em] text-white/40 font-bold">Observation Deck</span>
+      <div id="live-dot" class="w-1.5 h-1.5 rounded-full bg-tertiary opacity-0 transition-opacity"></div>
+    </div>
+
+    <!-- Trace feed -->
+    <div id="obs-body">
+      <div id="trace-empty" class="text-center py-16 text-xs uppercase tracking-widest text-white/15">Waiting for cognitive init…</div>
+      <div id="trace-feed"></div>
+    </div>
+
+    <!-- Suggestion chips -->
+    <div id="chips-bar" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,.06);display:none"></div>
+
+    <!-- Agent response -->
+    <div id="response-area" style="display:none"></div>
+
+    <!-- Input -->
+    <div id="input-bar">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <input id="prompt-input" type="text" placeholder="Initialize command or query…" autocomplete="off"/>
+        <button id="send-btn" style="flex-shrink:0;width:36px;height:36px;background:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s" onclick="handleSend()">
+          <span class="material-symbols-outlined" style="color:#111;font-size:18px">arrow_upward</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+</div><!-- /root -->
+
+<!-- ══════════════════════════════════════════════════════
+     D3 SWARM GRAPH + SSE WIRING
+     ══════════════════════════════════════════════════════ -->
+<script src="nexus-core.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────
+   1. AGENT DEFINITIONS
+   ───────────────────────────────────────────────────────── */
+const AGENTS = [
+  {id:'nexus',    label:'NEXUS',    sub:'Orchestrator', r:42, color:'#4285F4'},
+  {id:'atlas',    label:'Atlas',    sub:'Research',     r:26, color:'#1a73e8'},
+  {id:'chrono',   label:'Chrono',   sub:'Scheduler',    r:26, color:'#EA4335'},
+  {id:'sage',     label:'Sage',     sub:'Structure',    r:26, color:'#34A853'},
+  {id:'mnemo',    label:'Mnemo',    sub:'Memory',       r:26, color:'#9334E6'},
+  {id:'tasks',    label:'Tasks',    sub:'Execution',    r:22, color:'#AB47BC'},
+  {id:'goals',    label:'Goals',    sub:'Strategy',     r:22, color:'#F9AB00'},
+  {id:'briefing', label:'Brief',    sub:'Context',      r:22, color:'#26A69A'},
+  {id:'analytics',label:'Analytics',sub:'Data',         r:22, color:'#00BCD4'},
+  {id:'tools',    label:'Toolbox',  sub:'Utility',      r:22, color:'#FF7043'},
+];
+
+/* Polar layout — nexus at centre, specialists on rings */
+const RING1 = ['atlas','chrono','sage','mnemo'];  // inner ring
+const RING2 = ['tasks','goals','briefing','analytics','tools']; // outer ring
+
+function computeLayout(W, H) {
+  const cx = W/2, cy = H/2;
+  const r1 = Math.min(W,H) * .28;
+  const r2 = Math.min(W,H) * .44;
+  const pos = {};
+  pos['nexus'] = {x:cx, y:cy};
+  RING1.forEach((id,i) => {
+    const a = (i/RING1.length)*Math.PI*2 - Math.PI/2;
+    pos[id] = {x: cx + r1*Math.cos(a), y: cy + r1*Math.sin(a)};
+  });
+  RING2.forEach((id,i) => {
+    const a = (i/RING2.length)*Math.PI*2 - Math.PI/4;
+    pos[id] = {x: cx + r2*Math.cos(a), y: cy + r2*Math.sin(a)};
+  });
+  return pos;
+}
+
+/* All possible edges (nexus → every agent, ring1 → ring2 partial) */
+const ALL_EDGES = [
+  ...RING1.map(b=>['nexus',b]),
+  ...RING2.map(b=>['nexus',b]),
+];
+
+/* ─────────────────────────────────────────────────────────
+   2. BUILD SVG STRUCTURE
+   ───────────────────────────────────────────────────────── */
+const svgEl = document.getElementById('swarm-svg');
+const svg   = d3.select('#swarm-svg');
+let W=0, H=0, nodePos={};
+
+const defs  = svg.append('defs');
+const edgeG = svg.append('g').attr('id','edge-layer');
+const nodeG = svg.append('g').attr('id','node-layer');
+
+/* Opal radial gradients */
+AGENTS.forEach(a => {
+  const g = defs.append('radialGradient')
+    .attr('id',`og-${a.id}`)
+    .attr('cx','35%').attr('cy','32%').attr('r','65%');
+  g.append('stop').attr('offset','0%').attr('stop-color','#fff').attr('stop-opacity',.6);
+  g.append('stop').attr('offset','40%').attr('stop-color',a.color).attr('stop-opacity',.82);
+  g.append('stop').attr('offset','100%').attr('stop-color',a.color).attr('stop-opacity',1);
+});
+
+/* Build edges */
+const edgeSels = {};
+ALL_EDGES.forEach(([a,b]) => {
+  const k = `${a}-${b}`;
+  edgeSels[k] = edgeG.append('path')
+    .attr('class','sw-edge')
+    .attr('id',`se-${k}`)
+    .attr('stroke', AGENTS.find(x=>x.id===b)?.color || '#fff');
+});
+
+/* Pulse balls */
+const pulseSels = {};
+ALL_EDGES.forEach(([a,b]) => {
+  const k = `${a}-${b}`;
+  pulseSels[k] = edgeG.append('circle')
+    .attr('r',4.5)
+    .attr('fill', AGENTS.find(x=>x.id===b)?.color || '#fff')
+    .attr('opacity',0)
+    .attr('pointer-events','none');
+});
+
+/* Build nodes */
+const nodeSels = {}, statusTextSels = {};
+AGENTS.forEach(a => {
+  const g = nodeG.append('g')
+    .attr('class','sw-node')
+    .attr('id',`sn-${a.id}`)
+    .style('opacity', a.id==='nexus' ? 1 : 0.22)
+    .style('transition','opacity .6s');
+
+  /* rings */
+  g.append('circle').attr('class','sw-ring-o')
+    .attr('r', a.r+14).attr('stroke',a.color).attr('stroke-opacity',.18)
+    .attr('stroke-dasharray','3 8');
+  g.append('circle').attr('class','sw-ring-i')
+    .attr('r', a.r+5).attr('stroke',a.color).attr('stroke-opacity',.3);
+
+  /* opal core */
+  g.append('circle').attr('class','sw-core')
+    .attr('r',a.r).attr('fill',`url(#og-${a.id})`);
+
+  /* opal shimmer ellipse */
+  g.append('ellipse').attr('class','sw-opal')
+    .attr('cx',-a.r*.22).attr('cy',-a.r*.28)
+    .attr('rx',a.r*.52).attr('ry',a.r*.32);
+
+  /* label */
+  g.append('text').attr('class','sw-label').attr('dy','0.3em').text(a.label);
+  g.append('text').attr('class','sw-sub').attr('dy','1.85em').text(a.sub);
+
+  /* status text (shown during active execution) */
+  const st = g.append('text').attr('class','sw-status-pill')
+    .attr('dy', a.r + 26)
+    .attr('opacity',0);
+  statusTextSels[a.id] = st;
+
+  /* tooltip + click */
+  g.on('mouseover', (evt) => showTip(evt, a))
+   .on('mousemove', moveTip)
+   .on('mouseout',  hideTip)
+   .on('click', () => {
+     if(a.id==='nexus'){
+       const inp = document.getElementById('prompt-input');
+       inp.focus();
+     }
+   });
+
+  nodeSels[a.id] = g;
+});
+
+/* ─────────────────────────────────────────────────────────
+   3. LAYOUT + RESIZE
+   ───────────────────────────────────────────────────────── */
+function layout() {
+  if(!W||!H) return;
+  nodePos = computeLayout(W, H);
+
+  AGENTS.forEach(a => {
+    const p = nodePos[a.id];
+    nodeSels[a.id].attr('transform',`translate(${p.x},${p.y})`);
+  });
+
+  ALL_EDGES.forEach(([a,b]) => {
+    const k=`${a}-${b}`;
+    const A=nodePos[a], B=nodePos[b];
+    if(!A||!B) return;
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+    /* slight upward curve */
+    const dx=B.x-A.x, dy=B.y-A.y;
+    const len=Math.sqrt(dx*dx+dy*dy);
+    const nx=-dy/len*30, ny=dx/len*30;
+    edgeSels[k].attr('d',`M${A.x},${A.y} Q${mx+nx},${my+ny} ${B.x},${B.y}`);
+  });
+}
+
+function resize() {
+  const rect = svgEl.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  layout();
+}
+resize();
+window.addEventListener('resize', resize);
+
+/* ─────────────────────────────────────────────────────────
+   4. ANIMATION HELPERS
+   ───────────────────────────────────────────────────────── */
+const activeAnims = {};
+
+function fireEdge(agentId, direction='out') {
+  const key = `nexus-${agentId}`;
+  if(!edgeSels[key]) return;
+
+  /* make edge visible */
+  edgeSels[key].classed('live',true).classed('done',false);
+
+  /* cancel previous pulse on this key */
+  if(activeAnims[key]) { activeAnims[key]=false; }
+  let alive=true;
+  activeAnims[key]=()=>{alive=false;};
+
+  const A = nodePos['nexus'], B = nodePos[agentId];
+  if(!A||!B) return;
+  const agentColor = AGENTS.find(x=>x.id===agentId)?.color||'#fff';
+
+  function pulse() {
+    if(!alive) { pulseSels[key].attr('opacity',0); return; }
+    const src = direction==='out' ? A : B;
+    const dst = direction==='out' ? B : A;
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+    const dx=B.x-A.x, dy=B.y-A.y, len=Math.sqrt(dx*dx+dy*dy);
+    const nx=-dy/len*30, ny=dx/len*30;
+
+    pulseSels[key].attr('fill',agentColor).attr('opacity',1)
+      .attr('transform',`translate(${src.x},${src.y})`);
+
+    pulseSels[key].transition().duration(900).ease(d3.easeQuadInOut)
+      .attrTween('transform',()=>{
+        return t => {
+          /* quadratic bezier interpolation */
+          const px=(1-t)*(1-t)*A.x+2*(1-t)*t*(mx+nx)+t*t*B.x;
+          const py=(1-t)*(1-t)*A.y+2*(1-t)*t*(my+ny)+t*t*B.y;
+          return direction==='out'
+            ? `translate(${px},${py})`
+            : `translate(${(1-t)*(1-t)*B.x+2*(1-t)*t*(mx+nx)+t*t*A.x},${(1-t)*(1-t)*B.y+2*(1-t)*t*(my+ny)+t*t*A.y})`;
+        };
+      })
+      .attr('opacity',0)
+      .on('end',()=>{ if(alive) setTimeout(pulse, 300); });
+  }
+  pulse();
+}
+
+function stopEdge(agentId) {
+  const key=`nexus-${agentId}`;
+  if(activeAnims[key]) { activeAnims[key](); delete activeAnims[key]; }
+  pulseSels[key]?.interrupt().attr('opacity',0);
+  edgeSels[key]?.classed('live',false).classed('done',true);
+}
+
+function stopAllEdges() {
+  AGENTS.forEach(a=>{ if(a.id!=='nexus') stopEdge(a.id); });
+  Object.keys(activeAnims).forEach(k=>{ activeAnims[k]&&activeAnims[k](); delete activeAnims[k]; });
+  Object.values(pulseSels).forEach(p=>p.interrupt().attr('opacity',0));
+  Object.values(edgeSels).forEach(e=>e.classed('live',false).classed('done',false).attr('opacity',0));
+}
+
+function setNodeActive(agentId, active) {
+  const n = nodeSels[agentId];
+  if(!n) return;
+  n.transition().duration(400).style('opacity', active ? 1 : 0.22);
+  if(active) {
+    n.select('.sw-ring-i').transition().duration(800).ease(d3.easeSinInOut)
+      .attr('stroke-opacity',.85).attr('r', (AGENTS.find(x=>x.id===agentId)?.r||26)+9)
+      .transition().duration(800).ease(d3.easeSinInOut)
+      .attr('stroke-opacity',.3).attr('r', (AGENTS.find(x=>x.id===agentId)?.r||26)+5)
+      .on('end', function(){ if(active) d3.select(this).dispatch('end'); });
+  }
+}
+
+function setNodeStatus(agentId, statusText, color) {
+  const st = statusTextSels[agentId];
+  if(!st) return;
+  st.text(statusText).attr('fill',color||'#fff').attr('opacity', statusText?1:0);
+}
+
+/* ─────────────────────────────────────────────────────────
+   5. NEXUS IDLE ANIMATIONS
+   ───────────────────────────────────────────────────────── */
+let ringOffset=0;
+(function idleRings(){
+  ringOffset-=.2;
+  svg.selectAll('.sw-ring-o').attr('stroke-dashoffset',ringOffset);
+  requestAnimationFrame(idleRings);
+})();
+
+(function nexusPulse(){
+  nodeSels['nexus']?.select('.sw-ring-i')
+    .transition().duration(2000).ease(d3.easeSinInOut)
+    .attr('stroke-opacity',.8).attr('r',52)
+    .transition().duration(2000).ease(d3.easeSinInOut)
+    .attr('stroke-opacity',.22).attr('r',47)
+    .on('end',nexusPulse);
+})();
+
+/* ─────────────────────────────────────────────────────────
+   6. TOOLTIP
+   ───────────────────────────────────────────────────────── */
+const TIP_DATA = {
+  nexus:    'Lead Orchestrator — decomposes prompts into parallel agent phases via Gemini 2.0 Flash',
+  atlas:    'Intelligence — Tavily Search, Wikipedia MediaWiki API, Web Scraper (free APIs)',
+  chrono:   'Scheduler — Google Calendar API, conflict detection, auto-scheduling',
+  sage:     'Structure — Notion API, Google Drive sync, knowledge architecture',
+  mnemo:    'Memory — 4-layer: Blackboard, JSON, Supabase context_items, pgvector semantic search',
+  tasks:    'Execution — Task creation, prioritization, completion tracking',
+  goals:    'Strategy — 90-day roadmapping, OKR decomposition, milestone planning',
+  briefing: 'Context — OpenWeatherMap + wttr.in (free fallback), daily briefings',
+  analytics:'Data — Python Executor, productivity metrics, pattern detection',
+  tools:    'Toolbox — CoinGecko (crypto), ExchangeRate-API (currency), HackerNews Algolia, REST Countries, Free Dictionary API',
+};
+const tip = document.getElementById('node-tip');
+function showTip(evt, a) {
+  tip.innerHTML=`<strong style="font-size:11px;font-weight:700">${a.label}</strong><br/><span style="color:rgba(255,255,255,.5);font-size:10px">${TIP_DATA[a.id]||''}</span>`;
+  tip.style.opacity=1;
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const rect=svgEl.getBoundingClientRect();
+  let x=evt.clientX-rect.left+14, y=evt.clientY-rect.top+14;
+  if(x+210>W) x=x-230;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ tip.style.opacity=0; }
+
+/* ─────────────────────────────────────────────────────────
+   7. OBSERVATION DECK HELPERS
+   ───────────────────────────────────────────────────────── */
+const traceFeed   = document.getElementById('trace-feed');
+const traceEmpty  = document.getElementById('trace-empty');
+const responseArea = document.getElementById('response-area');
+const chipsBar    = document.getElementById('chips-bar');
+const statusText  = document.getElementById('status-text');
+const statusDot   = document.getElementById('status-dot');
+const liveDot     = document.getElementById('live-dot');
+const hintEl      = document.getElementById('canvas-hint');
+
+function setSystemStatus(state) {
+  // state: 'idle' | 'running' | 'done' | 'error'
+  const map = {
+    idle:    {text:'Awaiting', dot:'rgba(255,255,255,.2)', live:false},
+    running: {text:'Processing', dot:'#F9AB00', live:true},
+    done:    {text:'Complete', dot:'#34A853', live:false},
+    error:   {text:'Error', dot:'#EA4335', live:false},
+  };
+  const s=map[state]||map.idle;
+  statusText.textContent=s.text;
+  statusDot.style.background=s.dot;
+  liveDot.style.opacity=s.live?1:0;
+  if(s.live) liveDot.style.animation='pulse 1.2s ease-in-out infinite';
+  else liveDot.style.animation='none';
+}
+
+function addTrace(agent, action, status) {
+  if(traceEmpty) traceEmpty.style.display='none';
+  const colors={running:'#F9AB00',done:'#34A853',error:'#EA4335',skipped:'rgba(255,255,255,.3)'};
+  const card=document.createElement('div');
+  card.className=`trace-card ${status}`;
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${NEXUS_CORE.AGENT_COLORS?.[agent]||'#fff'}">${agent}</span>
+      <span style="font-size:9px;color:${colors[status]||'#fff'};font-weight:600;letter-spacing:.08em;text-transform:uppercase">${status}</span>
+    </div>
+    <p style="font-size:11px;color:rgba(255,255,255,.52);line-height:1.5;margin:0">${action}</p>
+  `;
+  traceFeed.prepend(card);
+  /* keep last 30 traces */
+  while(traceFeed.children.length>30) traceFeed.removeChild(traceFeed.lastChild);
+}
+
+/* Very simple markdown → HTML for response panel */
+function simpleMarkdown(md) {
+  if(!md) return '';
+  return md
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
+    .replace(/^---$/gm,'<hr/>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/^(?!<[hul]|<hr)(.+)/gm,'<p>$1</p>');
+}
+
+function showResponse(result) {
+  responseArea.style.display='block';
+  const content = result.markdown_content || result.full_response || result.summary || '';
+  const agentId  = result.agent||'orchestrator';
+  const agentColor = NEXUS_CORE.AGENT_COLORS?.[agentId]||'#4285F4';
+
+  const card=document.createElement('div');
+  card.className='agent-card';
+  card.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:6px;height:6px;border-radius:50%;background:${agentColor}"></div>
+      <span style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.4)">${agentId} · response</span>
+    </div>
+    <div class="md-content" style="font-size:.82rem">${simpleMarkdown(content)}</div>
+  `;
+  responseArea.prepend(card);
+
+  /* Suggestion chips */
+  if(result.suggestions?.length) {
+    chipsBar.style.display='flex';
+    chipsBar.innerHTML='';
+    result.suggestions.forEach(s=>{
+      const btn=document.createElement('button');
+      btn.style.cssText='font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 10px;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);background:transparent;border-radius:3px;cursor:pointer;transition:all .15s';
+      btn.textContent=s.label;
+      btn.onmouseenter=()=>{btn.style.borderColor='rgba(255,255,255,.4)';btn.style.color='rgba(255,255,255,.9)'};
+      btn.onmouseleave=()=>{btn.style.borderColor='rgba(255,255,255,.15)';btn.style.color='rgba(255,255,255,.5)'};
+      btn.onclick=()=>{ sendPrompt(s.prompt); };
+      chipsBar.appendChild(btn);
+    });
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   8. SSE HANDLER — wires trace events to D3 graph
+   ───────────────────────────────────────────────────────── */
+function handleSSEEvent(event) {
+  if(event.type==='heartbeat') return;
+
+  if(event.type==='trace') {
+    const {agent, action, status} = event;
+    addTrace(agent, action, status);
+
+    /* Activate the node that just emitted */
+    if(agent && agent!=='orchestrator' && agent!=='system' && agent!=='booster') {
+      if(status==='running') {
+        setNodeActive(agent, true);
+        fireEdge(agent, 'out');
+        setNodeStatus(agent, '⬤ Running', '#F9AB00');
+      } else if(status==='done') {
+        fireEdge(agent, 'in');       /* return pulse */
+        setTimeout(()=>{
+          stopEdge(agent);
+          setNodeActive(agent, false);
+          setNodeStatus(agent, '✓ Done', '#34A853');
+          setTimeout(()=>setNodeStatus(agent,'',null), 2500);
+        }, 900);
+      } else if(status==='error') {
+        stopEdge(agent);
+        setNodeStatus(agent,'✕ Error','#EA4335');
+        setTimeout(()=>setNodeStatus(agent,'',null), 3000);
+      }
+    }
+
+    if(agent==='orchestrator') {
+      const actionLow=action.toLowerCase();
+      if(actionLow.includes('phase')) {
+        addPhaseLabel(action);
+      }
+    }
+
+    setSystemStatus('running');
+  }
+
+  if(event.type==='response') {
+    const result = event.result||{};
+    showResponse(result);
+    stopAllEdges();
+    /* dim all agents back down */
+    AGENTS.forEach(a=>{ if(a.id!=='nexus') setNodeActive(a.id,false); });
+    setSystemStatus('done');
+    hintEl.style.opacity='.06';
+  }
+
+  if(event.type==='error') {
+    addTrace('system', event.error||'Unknown error', 'error');
+    stopAllEdges();
+    setSystemStatus('error');
+  }
+
+  if(event.type==='complete') {
+    setSystemStatus('done');
+  }
+}
+
+function addPhaseLabel(action) {
+  const badge=document.createElement('div');
+  badge.className='phase-badge';
+  badge.innerHTML=`<span class="material-symbols-outlined" style="font-size:11px">account_tree</span>${action}`;
+  traceFeed.prepend(badge);
+}
+
+/* ─────────────────────────────────────────────────────────
+   9. SEND FLOW
+   ───────────────────────────────────────────────────────── */
+function sendPrompt(text) {
+  const input = document.getElementById('prompt-input');
+  input.value = text;
+  handleSend();
+}
+
+async function handleSend() {
+  const input  = document.getElementById('prompt-input');
+  const sendBtn= document.getElementById('send-btn');
+  const val    = input.value.trim();
+  if(!val || NEXUS_CORE.isStreaming) return;
+
+  input.value='';
+  input.disabled=true;
+  sendBtn.disabled=true;
+  hintEl.style.opacity=0;
+
+  /* reset observation */
+  traceFeed.innerHTML='';
+  responseArea.style.display='none';
+  responseArea.innerHTML='';
+  chipsBar.style.display='none';
+  chipsBar.innerHTML='';
+  if(traceEmpty) traceEmpty.style.display='none';
+
+  /* Reset graph state */
+  stopAllEdges();
+  AGENTS.forEach(a=>{ if(a.id!=='nexus'){ setNodeActive(a.id,false); setNodeStatus(a.id,'',null); } });
+
+  /* Show user prompt */
+  const userBadge=document.createElement('div');
+  userBadge.style.cssText='font-size:12px;color:rgba(255,255,255,.7);margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:4px;border:1px solid rgba(255,255,255,.08)';
+  userBadge.textContent=val;
+  traceFeed.appendChild(userBadge);
+
+  setSystemStatus('running');
+  nodeSels['nexus'].select('.sw-ring-i')
+    .transition().duration(400).attr('stroke-opacity',.95);
+
+  await NEXUS_CORE.executeFlow(val, handleSSEEvent);
+
+  input.disabled=false;
+  sendBtn.disabled=false;
+  input.focus();
+}
+
+/* Enter key */
+document.getElementById('prompt-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+
+/* Clear button */
+document.getElementById('clear-btn').onclick=()=>{
+  traceFeed.innerHTML='';
+  responseArea.innerHTML='';
+  responseArea.style.display='none';
+  chipsBar.innerHTML='';
+  chipsBar.style.display='none';
+  traceEmpty.style.display='block';
+  stopAllEdges();
+  AGENTS.forEach(a=>{ if(a.id!=='nexus'){ setNodeActive(a.id,false); setNodeStatus(a.id,'',null); } });
+  setSystemStatus('idle');
+  hintEl.style.opacity='.18';
+};
+
+/* ─────────────────────────────────────────────────────────
+   10. READY STATE
+   ───────────────────────────────────────────────────────── */
+const promptInput = document.getElementById('prompt-input');
+const sendBtnEl   = document.getElementById('send-btn');
+promptInput.disabled=true;
+sendBtnEl.disabled=true;
+promptInput.placeholder='Initialising system…';
+
+NEXUS_CORE.whenReady(()=>{
+  promptInput.disabled=false;
+  sendBtnEl.disabled=false;
+  promptInput.placeholder='Initialize command or query…';
+  setSystemStatus('idle');
+});
+</script>
+<script>
+  function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('hidden');
+    menu.classList.toggle('flex');
+  }
+</script>
+</body>
+</html>

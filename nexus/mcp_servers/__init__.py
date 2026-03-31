@@ -10,3 +10,18 @@ from .maps_mcp import MapsMCP
 from .notion_mcp import NotionMCP
 from .scraper_mcp import ScraperMCP
 from .youtube_mcp import YouTubeMCP
+
+__all__ = [
+    "SearchMCP",
+    "WeatherMCP",
+    "WikipediaMCP",
+    "CalendarMCP",
+    "ExecutorMCP",
+    "FilesystemMCP",
+    "FirestoreMCP",
+    "GmailMCP",
+    "MapsMCP",
+    "NotionMCP",
+    "ScraperMCP",
+    "YouTubeMCP",
+]
